@@ -1,0 +1,6 @@
+.vscode/**
+src/**
+**/*.map
+tsconfig.json
+.gitignore
+prd-laragon-controller.md

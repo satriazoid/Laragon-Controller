@@ -1,0 +1,6 @@
+node_modules/
+out/
+*.vsix
+prd-laragon-controller.md
+*.bak-* 
+test-*.js 

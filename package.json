@@ -1,0 +1,141 @@
+{
+  "name": "laragon-controller",
+  "displayName": "Laragon Controller",
+  "description": "Start, stop and monitor your Laragon stack (Apache, MySQL, PostgreSQL, Nginx) from the VS Code sidebar.",
+  "version": "0.6.0",
+  "publisher": "satriazoid",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "laragon",
+    "apache",
+    "mysql",
+    "nginx",
+    "local server",
+    "postgresql",
+    "postgres"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onView:laragonController.dashboard",
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "laragonController",
+          "title": "Laragon",
+          "icon": "media/laragon.svg"
+        }
+      ]
+    },
+    "views": {
+      "laragonController": [
+        {
+          "id": "laragonController.dashboard",
+          "name": "Dashboard",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "laragonController.refresh",
+        "title": "Refresh Status",
+        "category": "Laragon",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "laragonController.startAll",
+        "title": "Start All Services",
+        "category": "Laragon",
+        "icon": "$(play)"
+      },
+      {
+        "command": "laragonController.stopAll",
+        "title": "Stop All Services",
+        "category": "Laragon",
+        "icon": "$(debug-stop)"
+      },
+      {
+        "command": "laragonController.restartAll",
+        "title": "Restart All Services",
+        "category": "Laragon",
+        "icon": "$(debug-restart)"
+      },
+      {
+        "command": "laragonController.openRoot",
+        "title": "Open www Folder",
+        "category": "Laragon"
+      },
+      {
+        "command": "laragonController.launchWeb",
+        "title": "Open localhost",
+        "category": "Laragon"
+      },
+      {
+        "command": "laragonController.openDatabaseManager",
+        "title": "Open Database Manager",
+        "category": "Laragon"
+      },
+      {
+        "command": "laragonController.openTerminal",
+        "title": "Open Terminal at Project Root",
+        "category": "Laragon"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "laragonController.refresh",
+          "when": "view == laragonController.dashboard",
+          "group": "navigation"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Laragon Controller",
+      "properties": {
+        "laragonController.laragonPath": {
+          "type": "string",
+          "default": "C:/laragon",
+          "description": "Path to the Laragon installation folder."
+        },
+        "laragonController.autoStartOnOpen": {
+          "type": "boolean",
+          "default": false,
+          "description": "Start all Laragon services automatically when VS Code opens."
+        },
+        "laragonController.pollingInterval": {
+          "type": "number",
+          "default": 3000,
+          "minimum": 1000,
+          "description": "Interval in milliseconds between service status checks."
+        },
+        "laragonController.defaultBrowser": {
+          "type": "string",
+          "default": "",
+          "description": "Path to a browser executable used to open http://localhost. Leave empty to use the system default browser."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "check": "node out/services.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.4.0"
+  }
+}

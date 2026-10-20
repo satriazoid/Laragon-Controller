@@ -1,0 +1,171 @@
+# Laragon Controller
+
+Control and monitor your Laragon stack — **Apache, MySQL, PostgreSQL and Nginx** —
+from the VS Code sidebar. No need to keep the Laragon GUI open or switch windows:
+the extension starts and stops the server binaries directly.
+
+## Features
+
+- Activity Bar panel with live status (polled every 3 seconds) for every service
+  found in your Laragon installation.
+- **Start All / Stop All / Restart All**, plus per-service start, stop and restart.
+- **PostgreSQL support**: detected automatically when present in Laragon; on first
+  start it even initialises the database cluster for you (see below).
+- Quick shortcuts:
+  - **Open www** — opens the `www` folder in your OS file explorer.
+  - **Open localhost** — opens `http://localhost` in your browser.
+  - **phpMyAdmin** — opens `http://localhost/phpmyadmin`.
+  - **Terminal** — opens a terminal at the current project root.
+- Toast notifications when services start or stop, and real error messages when
+  something fails (nothing fails silently).
+- Works without the Laragon GUI running.
+
+## Services
+
+Services are **auto-detected** by scanning the Laragon folder — a service only
+appears (and only gets controlled) when its binaries exist on the machine:
+
+| Service    | Detected at                                                     | Started via                                   | Default port |
+| ---------- | --------------------------------------------------------------- | --------------------------------------------- | ------------ |
+| Apache     | `bin/apache/*/bin/httpd.exe`                                    | `httpd.exe`                                   | 80           |
+| MySQL      | `bin/mysql/*/bin/mysqld.exe`                                    | `mysqld.exe --defaults-file=<version>/my.ini` | 3306         |
+| PostgreSQL | `bin/postgresql/*/bin/pg_ctl.exe`, cluster in `<version>/data`  | `pg_ctl start` / `pg_ctl stop`                | 5432         |
+| Nginx      | `bin/nginx/*/nginx.exe`                                         | `nginx.exe`                                   | 81           |
+
+Apache listens on port 80 and Nginx on port 81, so both web servers can run at
+the same time.
+
+### PostgreSQL notes
+
+- PostgreSQL is **not part of a stock Laragon install**. If the
+  `bin/postgresql/<version>/bin/pg_ctl.exe` file is missing, add PostgreSQL to
+  Laragon first (Laragon's *Quick Add*, or extract an official PostgreSQL
+  Windows distribution into `bin/postgresql/<version>/`). The extension picks
+  it up automatically — no configuration needed.
+- **First start initialises the cluster**: if `<version>/data` has no cluster
+  yet, the extension runs `initdb` with superuser `postgres` and **trust
+  authentication for local connections**. That is convenient for local
+  development only — do not expose such a server to a network.
+- PostgreSQL is managed through `pg_ctl`, so the database keeps running
+  independently of VS Code and of any console window.
+
+## Requirements
+
+- Windows 10/11.
+- VS Code **1.80.0** or newer.
+- Laragon installed (default `C:\laragon`; configurable, see Settings).
+
+That is all. Node.js is **not** needed to *use* the packaged extension — only
+to build it from source.
+
+## Installation
+
+### Option A — install the packaged `.vsix` (plug and play)
+
+1. Get `laragon-controller-<version>.vsix` (from the GitHub Releases page of
+   this repository, or build it yourself, see [Development](#development)).
+2. Install it, either way:
+   - **VS Code UI**: Extensions panel → `…` menu → **Install from VSIX…** →
+     pick the file.
+   - **Command line**:
+     ```bat
+     code --install-extension laragon-controller-0.6.0.vsix
+     ```
+3. Reload VS Code when prompted. The **Laragon** icon appears in the Activity
+   Bar — done.
+
+### Option B — build from source
+
+```bat
+git clone <this-repo-url>
+cd laragon-controller
+npm install
+npm run compile
+```
+
+Then either press `F5` in VS Code to run it in an Extension Development Host,
+or package and install it as in Option A:
+
+```bat
+npx @vscode/vsce package --allow-missing-repository
+code --install-extension laragon-controller-0.6.0.vsix --force
+```
+
+### Installing with an AI coding agent
+
+This repository ships an `AGENTS.md` file with exact, machine-readable
+setup steps. Give the repository (or its URL) to your AI coding agent and say:
+
+> Read `AGENTS.md` and `README.md` in this repo, then build and install the
+> Laragon Controller extension into my VS Code, and verify the installation.
+
+The agent can complete the whole flow unattended: install dependencies,
+compile, package the `.vsix`, install it and verify the installed files.
+
+## Usage
+
+Open the **Laragon** panel in the Activity Bar:
+
+- **Start All / Stop All / Restart All** for the whole stack.
+- Per-service **Start / Stop / Restart** buttons; the dot shows the state
+  (green = running, red = stopped, yellow = busy/unknown).
+- Shortcut buttons: **Open www**, **Open localhost**, **phpMyAdmin**,
+  **Terminal**.
+- All actions are also available as commands (`Laragon: …`) in the Command
+  Palette.
+
+## Settings
+
+| Setting                            | Default      | Description                                                              |
+| ---------------------------------- | ------------ | ------------------------------------------------------------------------ |
+| `laragonController.laragonPath`    | `C:/laragon` | Laragon installation folder.                                             |
+| `laragonController.autoStartOnOpen`| `false`      | Start all services automatically when VS Code opens.                     |
+| `laragonController.pollingInterval`| `3000`       | Status check interval in milliseconds (minimum 1000).                    |
+| `laragonController.defaultBrowser` | `""`         | Browser executable used for `http://localhost`; empty = system default.  |
+
+## Troubleshooting
+
+- **"Laragon not found at …"** — Laragon is not at the default path. Set
+  `laragonController.laragonPath` to your installation folder.
+- **A service never shows up** — its binaries were not found; check the
+  detection paths in the [Services](#services) table. For PostgreSQL this
+  usually means it has not been added to Laragon yet.
+- **phpMyAdmin says "Forbidden"** — that comes from Apache, not this
+  extension: Laragon's `etc/apache2/alias/phpmyadmin.conf` must point at an
+  existing phpMyAdmin folder (e.g. `C:/laragon/www/phpmyadmin`) and Apache
+  must be restarted afterwards.
+- **A service will not stop** — the extension first tries the graceful
+  shutdown for each service and then force-kills the process as a fallback.
+
+## Development
+
+```bat
+npm install     # install dev dependencies (TypeScript)
+npm run compile # build to out/
+npm run watch   # rebuild on change
+node out/services.js   # sanity check: prints detected binaries + live status
+```
+
+Project layout:
+
+```
+src/
+  extension.ts  commands and activation
+  dashboard.ts  sidebar webview (renders one row per service automatically)
+  laragon.ts    paths and control facade
+  services.ts   service detection, start, stop, status (no VS Code API)
+```
+
+## Changelog
+
+- **0.6.0** — PostgreSQL service: auto-detection, `pg_ctl` start/stop,
+  automatic `initdb` on first start, stale `postmaster.pid` cleanup.
+- **0.5.1** — Fixed the dead **Open www** button (it called a non-existent
+  VS Code command and swallowed the error); browser-open failures are now
+  reported instead of failing silently.
+- **0.5.0** — Initial release: Apache, MySQL and Nginx control, sidebar
+  dashboard, shortcuts.
+
+## License
+
+MIT — see the `LICENSE` file in this repository.
