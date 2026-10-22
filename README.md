@@ -11,6 +11,10 @@ the extension starts and stops the server binaries directly.
 - **Start All / Stop All / Restart All**, plus per-service start, stop and restart.
 - **PostgreSQL support**: detected automatically when present in Laragon; on first
   start it even initialises the database cluster for you (see below).
+- **Background by design**: services run with no console or terminal window to
+  keep open, and keep running when VS Code or any terminal is closed. No
+  administrator rights are needed and nothing is installed as a Windows
+  service — the servers run as your own user.
 - Quick shortcuts:
   - **Open www** — opens the `www` folder in your OS file explorer.
   - **Open localhost** — opens `http://localhost` in your browser.
@@ -23,7 +27,9 @@ the extension starts and stops the server binaries directly.
 ## Services
 
 Services are **auto-detected** by scanning the Laragon folder — a service only
-appears (and only gets controlled) when its binaries exist on the machine:
+appears (and only gets controlled) when its binaries exist on the machine.
+If several version folders exist for the same service, the first matching
+folder is the one that gets controlled:
 
 | Service    | Detected at                                                     | Started via                                   | Default port |
 | ---------- | --------------------------------------------------------------- | --------------------------------------------- | ------------ |
@@ -45,6 +51,10 @@ the same time.
   terminal is closed.
 - Stop still goes through `mysqladmin shutdown`, with a force-kill
   fallback, exactly as before.
+- Graceful shutdown assumes Laragon's default MySQL setup (user `root`,
+  no password). If you set a root password, `mysqladmin` can no longer
+  authenticate and stopping falls back to force-killing `mysqld.exe` —
+  it still stops, just less politely.
 
 ### PostgreSQL notes
 
@@ -62,9 +72,12 @@ the same time.
 
 ## Requirements
 
-- Windows 10/11.
+- Windows 10/11 (this extension is Windows-only).
 - VS Code **1.80.0** or newer.
 - Laragon installed (default `C:\laragon`; configurable, see Settings).
+- No administrator rights, and nothing to install besides the extension
+  itself: Windows PowerShell, which ships with Windows, is used to launch
+  MySQL hidden.
 
 That is all. Node.js is **not** needed to *use* the packaged extension — only
 to build it from source.
@@ -73,8 +86,9 @@ to build it from source.
 
 ### Option A — install the packaged `.vsix` (plug and play)
 
-1. Get `laragon-controller-<version>.vsix` (from the GitHub Releases page of
-   this repository, or build it yourself, see [Development](#development)).
+1. Get `laragon-controller-<version>.vsix` — for now it is distributed as a
+   file (it is not on the VS Code Marketplace); you can also build it
+   yourself, see [Development](#development).
 2. Install it, either way:
    - **VS Code UI**: Extensions panel → `…` menu → **Install from VSIX…** →
      pick the file.
@@ -113,6 +127,16 @@ setup steps. Give the repository (or its URL) to your AI coding agent and say:
 The agent can complete the whole flow unattended: install dependencies,
 compile, package the `.vsix`, install it and verify the installed files.
 
+### Sharing the extension
+
+Send the `.vsix` file. The other machine needs the same setup (Windows
+10/11, VS Code, Laragon); after that everything in this README applies
+as-is: services are detected automatically, no administrator rights are
+needed, and the only setting that commonly needs a touch is
+`laragonController.laragonPath` when Laragon lives outside `C:\laragon`.
+PostgreSQL still has to be present in that Laragon first (see the
+PostgreSQL notes above).
+
 ## Usage
 
 Open the **Laragon** panel in the Activity Bar:
@@ -147,6 +171,12 @@ Open the **Laragon** panel in the Activity Bar:
   must be restarted afterwards.
 - **A service will not stop** — the extension first tries the graceful
   shutdown for each service and then force-kills the process as a fallback.
+- **Restart never finishes, or the buttons stay disabled** — that was a
+  bug in versions before 0.6.3, where an action could hang forever.
+  Update to 0.6.3 or newer; the installed version is shown in the
+  Extensions panel.
+- **A console window titled with the `mysqld.exe` path appears** — also
+  fixed, in 0.6.2. If you still see one, you are on an older version.
 
 ## Development
 
@@ -179,10 +209,9 @@ src/
   removed the terminal parent but still showed a `mysqld.exe` console
   window, and closing that window killed the server; 0.6.2 leaves no
   visible window at all.
-- **0.6.1** — MySQL now starts as a background process via WMI
-  (`Win32_Process.Create`) instead of being spawned from VS Code/a
-  terminal: no console window, and it survives VS Code and terminals
-  closing.
+- **0.6.1** — First attempt at a background MySQL start, via WMI
+  (`Win32_Process.Create`). It removed the terminal parent but still left
+  a visible `mysqld.exe` console window — superseded by 0.6.2.
 - **0.6.0** — PostgreSQL service: auto-detection, `pg_ctl` start/stop,
   automatic `initdb` on first start, stale `postmaster.pid` cleanup.
 - **0.5.1** — Fixed the dead **Open www** button (it called a non-existent
