@@ -1,6 +1,6 @@
 # Laragon Controller
 
-Control and monitor your Laragon stack — **Apache, MySQL, PostgreSQL and Nginx** —
+Control and monitor your Laragon stack (**Apache, MySQL, PostgreSQL and Nginx**)
 from the VS Code sidebar. No need to keep the Laragon GUI open or switch windows:
 the extension starts and stops the server binaries directly.
 
@@ -14,19 +14,19 @@ the extension starts and stops the server binaries directly.
 - **Background by design**: services run with no console or terminal window to
   keep open, and keep running when VS Code or any terminal is closed. No
   administrator rights are needed and nothing is installed as a Windows
-  service — the servers run as your own user.
+  service. The servers run as your own user.
 - Quick shortcuts:
-  - **Open www** — opens the `www` folder in your OS file explorer.
-  - **Open localhost** — opens `http://localhost` in your browser.
-  - **phpMyAdmin** — opens `http://localhost/phpmyadmin`.
-  - **Terminal** — opens a terminal at the current project root.
+  - **Open www**: opens the `www` folder in your OS file explorer.
+  - **Open localhost**: opens `http://localhost` in your browser.
+  - **phpMyAdmin**: opens `http://localhost/phpmyadmin`.
+  - **Terminal**: opens a terminal at the current project root.
 - Toast notifications when services start or stop, and real error messages when
   something fails (nothing fails silently).
 - Works without the Laragon GUI running.
 
 ## Services
 
-Services are **auto-detected** by scanning the Laragon folder — a service only
+Services are **auto-detected** by scanning the Laragon folder. A service only
 appears (and only gets controlled) when its binaries exist on the machine.
 If several version folders exist for the same service, the first matching
 folder is the one that gets controlled:
@@ -53,8 +53,8 @@ the same time.
   fallback, exactly as before.
 - Graceful shutdown assumes Laragon's default MySQL setup (user `root`,
   no password). If you set a root password, `mysqladmin` can no longer
-  authenticate and stopping falls back to force-killing `mysqld.exe` —
-  it still stops, just less politely.
+  authenticate and stopping falls back to force-killing `mysqld.exe`.
+  It still stops, just less politely.
 
 ### PostgreSQL notes
 
@@ -62,11 +62,11 @@ the same time.
   `bin/postgresql/<version>/bin/pg_ctl.exe` file is missing, add PostgreSQL to
   Laragon first (Laragon's *Quick Add*, or extract an official PostgreSQL
   Windows distribution into `bin/postgresql/<version>/`). The extension picks
-  it up automatically — no configuration needed.
+  it up automatically. No configuration needed.
 - **First start initialises the cluster**: if `<version>/data` has no cluster
   yet, the extension runs `initdb` with superuser `postgres` and **trust
   authentication for local connections**. That is convenient for local
-  development only — do not expose such a server to a network.
+  development only. Do not expose such a server to a network.
 - PostgreSQL is managed through `pg_ctl`, so the database keeps running
   independently of VS Code and of any console window.
 
@@ -79,27 +79,27 @@ the same time.
   itself: Windows PowerShell, which ships with Windows, is used to launch
   MySQL hidden.
 
-That is all. Node.js is **not** needed to *use* the packaged extension — only
+That is all. Node.js is **not** needed to *use* the packaged extension, only
 to build it from source.
 
 ## Installation
 
-### Option A — install the packaged `.vsix` (plug and play)
+### Option A: install the packaged `.vsix` (plug and play)
 
-1. Get `laragon-controller-<version>.vsix` — for now it is distributed as a
+1. Get `laragon-controller-<version>.vsix`. For now it is distributed as a
    file (it is not on the VS Code Marketplace); you can also build it
    yourself, see [Development](#development).
 2. Install it, either way:
-   - **VS Code UI**: Extensions panel → `…` menu → **Install from VSIX…** →
-     pick the file.
+   - **VS Code UI**: in the Extensions panel, open the `...` menu, choose
+     **Install from VSIX...**, then pick the file.
    - **Command line**:
      ```bat
      code --install-extension laragon-controller-0.6.3.vsix
      ```
 3. Reload VS Code when prompted. The **Laragon** icon appears in the Activity
-   Bar — done.
+   Bar. Done.
 
-### Option B — build from source
+### Option B: build from source
 
 ```bat
 git clone <this-repo-url>
@@ -146,7 +146,7 @@ Open the **Laragon** panel in the Activity Bar:
   (green = running, red = stopped, yellow = busy/unknown).
 - Shortcut buttons: **Open www**, **Open localhost**, **phpMyAdmin**,
   **Terminal**.
-- All actions are also available as commands (`Laragon: …`) in the Command
+- All actions are also available as commands (`Laragon: ...`) in the Command
   Palette.
 
 ## Settings
@@ -160,22 +160,22 @@ Open the **Laragon** panel in the Activity Bar:
 
 ## Troubleshooting
 
-- **"Laragon not found at …"** — Laragon is not at the default path. Set
+- **"Laragon not found at ..."**: Laragon is not at the default path. Set
   `laragonController.laragonPath` to your installation folder.
-- **A service never shows up** — its binaries were not found; check the
+- **A service never shows up**: its binaries were not found; check the
   detection paths in the [Services](#services) table. For PostgreSQL this
-  usually means it has not been added to Laragon yet.
-- **phpMyAdmin says "Forbidden"** — that comes from Apache, not this
+  means it has not been added to Laragon yet.
+- **phpMyAdmin says "Forbidden"**: that comes from Apache, not this
   extension: Laragon's `etc/apache2/alias/phpmyadmin.conf` must point at an
   existing phpMyAdmin folder (e.g. `C:/laragon/www/phpmyadmin`) and Apache
   must be restarted afterwards.
-- **A service will not stop** — the extension first tries the graceful
+- **A service will not stop**: the extension first tries the graceful
   shutdown for each service and then force-kills the process as a fallback.
-- **Restart never finishes, or the buttons stay disabled** — that was a
+- **Restart never finishes, or the buttons stay disabled**: that was a
   bug in versions before 0.6.3, where an action could hang forever.
   Update to 0.6.3 or newer; the installed version is shown in the
   Extensions panel.
-- **A console window titled with the `mysqld.exe` path appears** — also
+- **A console window titled with the `mysqld.exe` path appears**: also
   fixed, in 0.6.2. If you still see one, you are on an older version.
 
 ## Development
@@ -199,27 +199,27 @@ src/
 
 ## Changelog
 
-- **0.6.3** — Restart (single and Restart All) no longer hangs: starting
+- **0.6.3**: Restart (single and Restart All) no longer hangs: starting
   PostgreSQL through `pg_ctl` was awaited via a pipe the daemon inherits
   and keeps open forever, so the action never returned and the dashboard
   stayed busy. External calls now run with stdio ignored, settle on
   process exit, and are all time-bounded.
-- **0.6.2** — MySQL start fixed properly: it now launches through
+- **0.6.2**: MySQL start fixed properly: it now launches through
   PowerShell `Start-Process -WindowStyle Hidden`. The 0.6.1 WMI launch
   removed the terminal parent but still showed a `mysqld.exe` console
   window, and closing that window killed the server; 0.6.2 leaves no
   visible window at all.
-- **0.6.1** — First attempt at a background MySQL start, via WMI
+- **0.6.1**: First attempt at a background MySQL start, via WMI
   (`Win32_Process.Create`). It removed the terminal parent but still left
-  a visible `mysqld.exe` console window — superseded by 0.6.2.
-- **0.6.0** — PostgreSQL service: auto-detection, `pg_ctl` start/stop,
+  a visible `mysqld.exe` console window; superseded by 0.6.2.
+- **0.6.0**: PostgreSQL service: auto-detection, `pg_ctl` start/stop,
   automatic `initdb` on first start, stale `postmaster.pid` cleanup.
-- **0.5.1** — Fixed the dead **Open www** button (it called a non-existent
+- **0.5.1**: Fixed the dead **Open www** button (it called a non-existent
   VS Code command and swallowed the error); browser-open failures are now
   reported instead of failing silently.
-- **0.5.0** — Initial release: Apache, MySQL and Nginx control, sidebar
+- **0.5.0**: Initial release: Apache, MySQL and Nginx control, sidebar
   dashboard, shortcuts.
 
 ## License
 
-MIT — see the `LICENSE` file in this repository.
+MIT. See the `LICENSE` file in this repository.
