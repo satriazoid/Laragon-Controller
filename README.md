@@ -28,12 +28,23 @@ appears (and only gets controlled) when its binaries exist on the machine:
 | Service    | Detected at                                                     | Started via                                   | Default port |
 | ---------- | --------------------------------------------------------------- | --------------------------------------------- | ------------ |
 | Apache     | `bin/apache/*/bin/httpd.exe`                                    | `httpd.exe`                                   | 80           |
-| MySQL      | `bin/mysql/*/bin/mysqld.exe`                                    | `mysqld.exe --defaults-file=<version>/my.ini` | 3306         |
+| MySQL      | `bin/mysql/*/bin/mysqld.exe`                                    | `mysqld.exe --defaults-file=<version>/my.ini`, started hidden via PowerShell `Start-Process` (background, no terminal window) | 3306         |
 | PostgreSQL | `bin/postgresql/*/bin/pg_ctl.exe`, cluster in `<version>/data`  | `pg_ctl start` / `pg_ctl stop`                | 5432         |
 | Nginx      | `bin/nginx/*/nginx.exe`                                         | `nginx.exe`                                   | 81           |
 
 Apache listens on port 80 and Nginx on port 81, so both web servers can run at
 the same time.
+
+### MySQL notes
+
+- MySQL is started through PowerShell `Start-Process -WindowStyle Hidden`.
+  Spawning `mysqld` directly (or through WMI) still gives it a visible
+  console window, and closing that window kills the server. The hidden
+  launch leaves it as a pure background process owned by no terminal:
+  no window to open or close, and it keeps running when VS Code or any
+  terminal is closed.
+- Stop still goes through `mysqladmin shutdown`, with a force-kill
+  fallback, exactly as before.
 
 ### PostgreSQL notes
 
@@ -69,7 +80,7 @@ to build it from source.
      pick the file.
    - **Command line**:
      ```bat
-     code --install-extension laragon-controller-0.6.0.vsix
+     code --install-extension laragon-controller-0.6.2.vsix
      ```
 3. Reload VS Code when prompted. The **Laragon** icon appears in the Activity
    Bar — done.
@@ -88,7 +99,7 @@ or package and install it as in Option A:
 
 ```bat
 npx @vscode/vsce package --allow-missing-repository
-code --install-extension laragon-controller-0.6.0.vsix --force
+code --install-extension laragon-controller-0.6.2.vsix --force
 ```
 
 ### Installing with an AI coding agent
@@ -158,6 +169,15 @@ src/
 
 ## Changelog
 
+- **0.6.2** — MySQL start fixed properly: it now launches through
+  PowerShell `Start-Process -WindowStyle Hidden`. The 0.6.1 WMI launch
+  removed the terminal parent but still showed a `mysqld.exe` console
+  window, and closing that window killed the server; 0.6.2 leaves no
+  visible window at all.
+- **0.6.1** — MySQL now starts as a background process via WMI
+  (`Win32_Process.Create`) instead of being spawned from VS Code/a
+  terminal: no console window, and it survives VS Code and terminals
+  closing.
 - **0.6.0** — PostgreSQL service: auto-detection, `pg_ctl` start/stop,
   automatic `initdb` on first start, stale `postmaster.pid` cleanup.
 - **0.5.1** — Fixed the dead **Open www** button (it called a non-existent

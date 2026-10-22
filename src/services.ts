@@ -116,6 +116,28 @@ export async function getStatus(root: string): Promise<Status> {
   return result;
 }
 
+// --- MySQL ------------------------------------------------------------------
+// mysqld is started through PowerShell Start-Process -WindowStyle Hidden.
+// Spawning it directly, or creating it through WMI, still gives it a visible
+// console window, and closing that window kills the server. The hidden
+// Start-Process launch leaves it as a pure background process owned by no
+// terminal, so it keeps running when VS Code or any terminal is closed.
+
+function quoteForPowerShell(value: string): string {
+  return `'${value.replace(/'/g, "''")}'`;
+}
+
+async function startMysql(launch: Launch): Promise<void> {
+  const argumentList = launch.args.map(quoteForPowerShell).join(', ');
+  const argsPart = launch.args.length ? ` -ArgumentList ${argumentList}` : '';
+  const script =
+    `Start-Process -FilePath ${quoteForPowerShell(launch.exe)}${argsPart} ` +
+    `-WorkingDirectory ${quoteForPowerShell(launch.cwd)} -WindowStyle Hidden`;
+  await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+    windowsHide: true,
+  });
+}
+
 // --- PostgreSQL -------------------------------------------------------------
 // Laragon layout: <root>/bin/postgresql/<version>/bin/pg_ctl.exe with the
 // cluster in <version>/data. PostgreSQL is started through pg_ctl (not by
@@ -179,6 +201,11 @@ export async function start(root: string, id: ServiceId): Promise<void> {
   }
   if (id === 'postgres') {
     await startPostgres(root);
+    await delay(600);
+    return;
+  }
+  if (id === 'mysql') {
+    await startMysql(launch);
     await delay(600);
     return;
   }
