@@ -40,6 +40,36 @@ interface Launch {
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// execFile waits for the child's stdio pipes to close, and a daemon started
+// through pg_ctl inherits those pipes and holds them open for its whole
+// lifetime, so awaiting pg_ctl start that way never returns and the caller
+// hangs forever. Spawning with stdio ignored and settling on the exit event
+// avoids the inherited pipes; the timeout bounds every external call.
+function runToExit(file: string, args: string[], cwd: string | undefined, timeoutMs: number): Promise<number | null> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(file, args, { cwd, windowsHide: true, stdio: 'ignore' });
+    const timer = setTimeout(() => {
+      child.kill();
+      reject(new Error(`${path.basename(file)} did not finish within ${Math.round(timeoutMs / 1000)} seconds.`));
+    }, timeoutMs);
+    child.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    child.on('exit', (code) => {
+      clearTimeout(timer);
+      resolve(code);
+    });
+  });
+}
+
+async function runChecked(file: string, args: string[], cwd: string | undefined, timeoutMs: number): Promise<void> {
+  const code = await runToExit(file, args, cwd, timeoutMs);
+  if (code !== 0) {
+    throw new Error(`${path.basename(file)} exited with code ${code ?? 'unknown'}.`);
+  }
+}
+
 function firstDirWith(base: string, marker: string): string | null {
   let entries: string[];
   try {
@@ -90,7 +120,7 @@ export function hasService(root: string, id: ServiceId): boolean {
 }
 
 async function tasklist(): Promise<string> {
-  const { stdout } = await execFileAsync('tasklist', ['/NH', '/FO', 'CSV'], { windowsHide: true });
+  const { stdout } = await execFileAsync('tasklist', ['/NH', '/FO', 'CSV'], { windowsHide: true, timeout: 15_000 });
   return stdout.toLowerCase();
 }
 
@@ -135,6 +165,7 @@ async function startMysql(launch: Launch): Promise<void> {
     `-WorkingDirectory ${quoteForPowerShell(launch.cwd)} -WindowStyle Hidden`;
   await execFileAsync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
     windowsHide: true,
+    timeout: 60_000,
   });
 }
 
@@ -163,10 +194,11 @@ async function startPostgres(root: string): Promise<void> {
   if (!fs.existsSync(path.join(data, 'PG_VERSION'))) {
     // First run on this machine: initialise a local development cluster.
     // Superuser "postgres", trust auth for local connections (dev only).
-    await execFileAsync(
+    await runChecked(
       path.join(bin, 'initdb.exe'),
       ['-D', data, '-U', 'postgres', '--auth=trust', '--encoding=UTF8'],
-      { windowsHide: true }
+      undefined,
+      180_000
     );
   } else {
     // postgres.exe is not running (checked by start()), so a leftover
@@ -181,14 +213,20 @@ async function startPostgres(root: string): Promise<void> {
     }
   }
 
-  await execFileAsync(
-    path.join(bin, 'pg_ctl.exe'),
+  const log = path.join(home, 'postgresql.log');
+  try {
     // -t 300: crash recovery on slow disks can take minutes; pg_ctl should
     // keep waiting instead of reporting success while the server is still
     // starting up.
-    ['-D', data, '-l', path.join(home, 'postgresql.log'), '-w', '-t', '300', 'start'],
-    { cwd: home, windowsHide: true }
-  );
+    await runChecked(
+      path.join(bin, 'pg_ctl.exe'),
+      ['-D', data, '-l', log, '-w', '-t', '300', 'start'],
+      home,
+      320_000
+    );
+  } catch (err) {
+    throw new Error(`PostgreSQL failed to start: ${(err as Error).message} See ${log} for details.`);
+  }
 }
 
 export async function start(root: string, id: ServiceId): Promise<void> {
@@ -249,7 +287,7 @@ export async function restart(root: string, id: ServiceId): Promise<void> {
 
 async function run(file: string, args: string[], cwd?: string): Promise<void> {
   try {
-    await execFileAsync(file, args, { cwd, windowsHide: true });
+    await runToExit(file, args, cwd, 90_000);
   } catch {
     // best effort: a forced kill below still applies
   }

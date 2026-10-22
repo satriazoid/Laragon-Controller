@@ -80,7 +80,7 @@ to build it from source.
      pick the file.
    - **Command line**:
      ```bat
-     code --install-extension laragon-controller-0.6.2.vsix
+     code --install-extension laragon-controller-0.6.3.vsix
      ```
 3. Reload VS Code when prompted. The **Laragon** icon appears in the Activity
    Bar — done.
@@ -99,7 +99,7 @@ or package and install it as in Option A:
 
 ```bat
 npx @vscode/vsce package --allow-missing-repository
-code --install-extension laragon-controller-0.6.2.vsix --force
+code --install-extension laragon-controller-0.6.3.vsix --force
 ```
 
 ### Installing with an AI coding agent
@@ -169,6 +169,11 @@ src/
 
 ## Changelog
 
+- **0.6.3** — Restart (single and Restart All) no longer hangs: starting
+  PostgreSQL through `pg_ctl` was awaited via a pipe the daemon inherits
+  and keeps open forever, so the action never returned and the dashboard
+  stayed busy. External calls now run with stdio ignored, settle on
+  process exit, and are all time-bounded.
 - **0.6.2** — MySQL start fixed properly: it now launches through
   PowerShell `Start-Process -WindowStyle Hidden`. The 0.6.1 WMI launch
   removed the terminal parent but still showed a `mysqld.exe` console
