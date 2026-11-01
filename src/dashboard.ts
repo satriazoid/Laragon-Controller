@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import {
   ACTION_LABEL,
   Action,
+  SERVICE_IDS,
   SERVICE_LABEL,
   ServiceId,
   control,
@@ -10,7 +11,7 @@ import {
   hasService,
   isInstalled,
   laragonPath,
-  enabledServices,
+  serviceFlags,
 } from './laragon';
 
 type Busy = ServiceId | 'all' | null;
@@ -75,7 +76,13 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private async onMessage(message: { type?: string; action?: Action; service?: ServiceId; name?: string }): Promise<void> {
+  private async onMessage(message: {
+    type?: string;
+    action?: Action;
+    service?: ServiceId;
+    name?: string;
+    enabled?: boolean;
+  }): Promise<void> {
     switch (message.type) {
       case 'ready':
       case 'refresh':
@@ -89,6 +96,25 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
           await this.runAction(message.action, message.service);
         }
         return;
+      case 'toggleService':
+        if (message.service) {
+          await this.setServiceEnabled(message.service, message.enabled === true);
+        }
+        return;
+    }
+  }
+
+  private async setServiceEnabled(service: ServiceId, enabled: boolean): Promise<void> {
+    const cfg = vscode.workspace.getConfiguration('laragonController');
+    const target = vscode.ConfigurationTarget.Workspace;
+    const hasWorkspace = !!vscode.workspace.workspaceFolders?.length;
+    await cfg.update(`enableService.${service}`, enabled, hasWorkspace ? target : vscode.ConfigurationTarget.Global);
+    this.rerender();
+  }
+
+  private rerender(): void {
+    if (this.view) {
+      this.view.webview.html = this.render(this.view.webview);
     }
   }
 
@@ -123,8 +149,11 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     ].join('; ');
     const cfg = vscode.workspace.getConfiguration('laragonController');
 
-    const activeServices = enabledServices().filter((id) => hasService(id));
-    const serviceList = JSON.stringify(activeServices.map((id) => ({ id, label: SERVICE_LABEL[id] })));
+    const flags = serviceFlags();
+    const installed = SERVICE_IDS.filter((id) => hasService(id));
+    const serviceList = JSON.stringify(
+      installed.map((id) => ({ id, label: SERVICE_LABEL[id], enabled: flags[id] }))
+    );
 
     const shortcuts: { id: string; label: string }[] = [];
     if (cfg.get<boolean>('enableOpenLocalhost', true)) shortcuts.push({ id: 'launchWeb', label: 'Open localhost' });
@@ -220,6 +249,21 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
   .service .controls button { padding: 3px 6px; font-size: 11px; }
   .shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .shortcuts button { width: 100%; text-align: left; }
+  .toggles { display: flex; flex-direction: column; gap: 2px; }
+  .toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .toggle:hover { background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.05)); }
+  .toggle input { margin: 0; accent-color: var(--vscode-checkbox-background, #0e639c); cursor: pointer; }
+  .toggle:focus-within { outline: 1px solid var(--vscode-focusBorder); outline-offset: 1px; }
+  .toggle .toggle-name { flex: 1 1 auto; }
+  .toggle .toggle-hint { font-size: 11px; color: var(--vscode-descriptionForeground); }
   .notice {
     padding: 8px 10px;
     border-radius: 4px;
@@ -251,6 +295,11 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     <div id="services"></div>
   </div>
 
+  <div class="section">
+    <div class="section-title">Dashboard settings</div>
+    <div id="toggles" class="toggles"></div>
+  </div>
+
   ${shortcutsSection}
 
 <script nonce="${nonce}">
@@ -258,11 +307,43 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
   const SERVICES = ${serviceList};
 
   const servicesEl = document.getElementById('services');
+  const togglesEl = document.getElementById('toggles');
   const notFoundEl = document.getElementById('notfound');
+
+  function renderToggles() {
+    togglesEl.textContent = '';
+    if (!SERVICES.length) {
+      const empty = document.createElement('div');
+      empty.className = 'toggle-hint';
+      empty.textContent = 'No services detected in the Laragon folder.';
+      togglesEl.appendChild(empty);
+      return;
+    }
+    SERVICES.forEach(function (service) {
+      const label = document.createElement('label');
+      label.className = 'toggle';
+
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = service.enabled;
+      input.dataset.toggleService = service.id;
+
+      const name = document.createElement('span');
+      name.className = 'toggle-name';
+      name.textContent = service.label;
+
+      const hint = document.createElement('span');
+      hint.className = 'toggle-hint';
+      hint.textContent = service.enabled ? 'shown' : 'hidden';
+
+      label.append(input, name, hint);
+      togglesEl.appendChild(label);
+    });
+  }
 
   function renderServices() {
     servicesEl.textContent = '';
-    SERVICES.forEach(function (service) {
+    SERVICES.filter(function (s) { return s.enabled; }).forEach(function (service) {
       const row = document.createElement('div');
       row.className = 'service';
       row.dataset.service = service.id;
@@ -334,12 +415,24 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     }
   });
 
+  document.addEventListener('change', function (event) {
+    const input = event.target;
+    if (input && input.dataset && input.dataset.toggleService) {
+      vscode.postMessage({
+        type: 'toggleService',
+        service: input.dataset.toggleService,
+        enabled: input.checked,
+      });
+    }
+  });
+
   window.addEventListener('message', function (event) {
     if (event.data && event.data.type === 'state') {
       applyState(event.data);
     }
   });
 
+  renderToggles();
   renderServices();
   vscode.postMessage({ type: 'ready' });
 </script>

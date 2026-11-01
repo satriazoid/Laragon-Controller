@@ -129,7 +129,7 @@ to build it from source.
      **Install from VSIX...**, then pick the file.
    - **Command line**:
      ```bat
-     code --install-extension laragon-controller-0.7.1.vsix
+     code --install-extension laragon-controller-0.7.3.vsix
      ```
 3. Reload VS Code when prompted. The **Laragon** icon appears in the Activity
    Bar. Done.
@@ -148,7 +148,7 @@ or package and install it as in Option A:
 
 ```bat
 pnpm dlx @vscode/vsce package --allow-missing-repository
-code --install-extension laragon-controller-0.7.1.vsix --force
+code --install-extension laragon-controller-0.7.3.vsix --force
 ```
 
 ### Installing with an AI coding agent
@@ -179,6 +179,11 @@ Open the **Laragon** panel in the Activity Bar:
 - **Start All / Stop All / Restart All** for the whole stack.
 - Per-service **Start / Stop / Restart** buttons; the dot shows the state
   (green = running, red = stopped, yellow = busy/unknown).
+- **Dashboard settings** section: a checkbox per installed service. Untick one
+  and its row disappears from the dashboard and is skipped by Start/Stop All;
+  tick it again and the row comes back. The checkbox writes straight to the
+  `laragonController.enableService.<name>` setting, so the Settings UI and the
+  dashboard always agree.
 - Shortcut buttons: **phpMyAdmin**, **HeidiSQL**, **Adminer**, **Open www**,
   **Open localhost**, **Terminal**. Each can be hidden in the settings.
 - All actions are also available as commands (`Laragon: ...`) in the Command
@@ -260,6 +265,10 @@ src/
 
 ## Changelog
 
+- **0.7.3**: New **Dashboard settings** section in the sidebar with a checkbox
+  per installed service, so services can be shown or hidden without opening
+  Settings. The checkbox updates `laragonController.enableService.<name>`
+  directly and the dashboard re-renders immediately.
 - **0.7.2**: Per-service on/off switches are now individual settings
   (`laragonController.enableService.<name>`), so they show up as checkboxes in
   the Settings UI instead of a hard-to-edit object. A service that is switched
