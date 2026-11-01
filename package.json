@@ -6,6 +6,10 @@
   "publisher": "satriazoid",
   "license": "MIT",
   "icon": "media/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/satriazoid/Laragon-Controller.git"
+  },
   "engines": {
     "vscode": "^1.80.0"
   },
