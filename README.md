@@ -54,23 +54,27 @@ the same time.
 
 ### Choosing your services
 
-Each service has a switch under `laragonController.services`:
+Each service has its own switch in the Settings UI, under **Laragon
+Controller → Enable Service**:
 
-```json
-"laragonController.services": {
-  "apache": true,
-  "mysql": true,
-  "postgres": false,
-  "nginx": false,
-  "redis": false,
-  "memcached": false
-}
-```
+| Setting                                   | Default | Service    |
+| ----------------------------------------- | ------- | ---------- |
+| `laragonController.enableService.apache`    | `true`  | Apache     |
+| `laragonController.enableService.mysql`     | `true`  | MySQL      |
+| `laragonController.enableService.postgres`  | `true`  | PostgreSQL |
+| `laragonController.enableService.nginx`     | `true`  | Nginx      |
+| `laragonController.enableService.redis`     | `true`  | Redis      |
+| `laragonController.enableService.memcached` | `true`  | Memcached  |
 
-A service set to `false` is hidden from the dashboard and skipped by
-Start All / Stop All / Restart All. Set it back to `true` and it reappears
-(after a reload if the panel is already open). Services whose binaries are not
-installed never show up, regardless of the switch.
+Turn a service off and it disappears from the dashboard and is skipped by
+Start All / Stop All / Restart All. Turn it back on and it reappears right
+away. Services whose binaries are not installed never show up, even when
+their switch is on.
+
+An older combined form of the same switches still exists as
+`laragonController.services` (an object keyed by service name). It is only a
+fallback: once an individual `enableService.<name>` switch is set, that value
+wins. Prefer the individual switches.
 
 ### MySQL notes
 
@@ -188,7 +192,13 @@ Open the **Laragon** panel in the Activity Bar:
 | `laragonController.autoStartOnOpen`| `false`      | Start all services automatically when VS Code opens.                     |
 | `laragonController.pollingInterval`| `3000`       | Status check interval in milliseconds (minimum 1000).                    |
 | `laragonController.defaultBrowser` | `""`         | Browser executable used for `http://localhost`; empty = system default.  |
-| `laragonController.services`       | all `true`   | Switch each service on or off. Off = hidden and skipped by Start/Stop All. |
+| `laragonController.enableService.apache` | `true` | Show Apache on the dashboard and include it in Start/Stop All. |
+| `laragonController.enableService.mysql` | `true` | Same, for MySQL. |
+| `laragonController.enableService.postgres` | `true` | Same, for PostgreSQL. |
+| `laragonController.enableService.nginx` | `true` | Same, for Nginx. |
+| `laragonController.enableService.redis` | `true` | Same, for Redis. |
+| `laragonController.enableService.memcached` | `true` | Same, for Memcached. |
+| `laragonController.services`       | `{}` (unset) | Legacy object form; individual switches override it. |
 | `laragonController.databaseManagerUrl` | `http://localhost/phpmyadmin` | URL opened by the phpMyAdmin shortcut. |
 | `laragonController.adminerUrl`     | `http://localhost/adminer` | URL opened by the Adminer shortcut.                        |
 | `laragonController.heidiSqlPath`   | `""`         | Path to `heidisql.exe`; empty = `<laragonPath>/bin/heidisql/heidisql.exe`. |
@@ -250,6 +260,12 @@ src/
 
 ## Changelog
 
+- **0.7.2**: Per-service on/off switches are now individual settings
+  (`laragonController.enableService.<name>`), so they show up as checkboxes in
+  the Settings UI instead of a hard-to-edit object. A service that is switched
+  off is hidden from the dashboard and skipped by Start/Stop/Restart All; the
+  dashboard updates as soon as the switch changes. The old combined
+  `laragonController.services` object still works as a fallback.
 - **0.7.1**: New services **Redis** and **Memcached** (auto-detected, start and
   stop handled). New `laragonController.services` setting to switch each
   service on or off per machine; a disabled service is hidden from the

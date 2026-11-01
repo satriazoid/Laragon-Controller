@@ -2,7 +2,7 @@
   "name": "laragon-controller",
   "displayName": "Laragon Controller",
   "description": "Start, stop and monitor your Laragon stack (Apache, MySQL, PostgreSQL, Nginx) from the VS Code sidebar.",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "publisher": "satriazoid",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -186,24 +186,38 @@
         },
         "laragonController.services": {
           "type": "object",
-          "default": {
-            "apache": true,
-            "mysql": true,
-            "postgres": true,
-            "nginx": true,
-            "redis": true,
-            "memcached": true
-          },
-          "description": "Enable or disable each service. A disabled service is hidden from the dashboard and skipped by Start All / Stop All / Restart All. It is only shown when its binaries are found in the Laragon install.",
-          "additionalProperties": false,
-          "properties": {
-            "apache": { "type": "boolean", "description": "Apache" },
-            "mysql": { "type": "boolean", "description": "MySQL" },
-            "postgres": { "type": "boolean", "description": "PostgreSQL" },
-            "nginx": { "type": "boolean", "description": "Nginx" },
-            "redis": { "type": "boolean", "description": "Redis" },
-            "memcached": { "type": "boolean", "description": "Memcached" }
-          }
+          "default": {},
+          "description": "Legacy combined form of the enableService switches. Prefer the individual laragonController.enableService.<name> settings, which override this object when set."
+        },
+        "laragonController.enableService.apache": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show **Apache** on the dashboard. When off, it is hidden and skipped by Start All / Stop All / Restart All."
+        },
+        "laragonController.enableService.mysql": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show **MySQL** on the dashboard. When off, it is hidden and skipped by Start All / Stop All / Restart All."
+        },
+        "laragonController.enableService.postgres": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show **PostgreSQL** on the dashboard. When off, it is hidden and skipped by Start All / Stop All / Restart All."
+        },
+        "laragonController.enableService.nginx": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show **Nginx** on the dashboard. When off, it is hidden and skipped by Start All / Stop All / Restart All."
+        },
+        "laragonController.enableService.redis": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show **Redis** on the dashboard. When off, it is hidden and skipped by Start All / Stop All / Restart All."
+        },
+        "laragonController.enableService.memcached": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show **Memcached** on the dashboard. When off, it is hidden and skipped by Start All / Stop All / Restart All."
         },
         "laragonController.enableOpenWww": {
           "type": "boolean",

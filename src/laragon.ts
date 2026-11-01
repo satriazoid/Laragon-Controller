@@ -12,10 +12,14 @@ export const SERVICE_LABEL = services.SERVICE_LABEL;
 export const ACTION_LABEL = services.ACTION_LABEL;
 
 export function serviceFlags(): services.ServiceFlags {
-  const raw = vscode.workspace
-    .getConfiguration('laragonController')
-    .get<Partial<services.ServiceFlags>>('services', {});
-  return { ...services.SERVICE_DEFAULT_ENABLED, ...raw };
+  const cfg = vscode.workspace.getConfiguration('laragonController');
+  const legacy = cfg.get<Partial<services.ServiceFlags>>('services') ?? {};
+  const flags = {} as services.ServiceFlags;
+  for (const id of SERVICE_IDS) {
+    const individual = cfg.get<boolean>(`enableService.${id}`);
+    flags[id] = individual ?? legacy[id] ?? services.SERVICE_DEFAULT_ENABLED[id];
+  }
+  return flags;
 }
 
 export function enabledServices(): ServiceId[] {
