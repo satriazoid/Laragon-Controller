@@ -81,7 +81,6 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     action?: Action;
     service?: ServiceId;
     name?: string;
-    enabled?: boolean;
   }): Promise<void> {
     switch (message.type) {
       case 'ready':
@@ -96,20 +95,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
           await this.runAction(message.action, message.service);
         }
         return;
-      case 'toggleService':
-        if (message.service) {
-          await this.setServiceEnabled(message.service, message.enabled === true);
-        }
-        return;
     }
-  }
-
-  private async setServiceEnabled(service: ServiceId, enabled: boolean): Promise<void> {
-    const cfg = vscode.workspace.getConfiguration('laragonController');
-    const target = vscode.ConfigurationTarget.Workspace;
-    const hasWorkspace = !!vscode.workspace.workspaceFolders?.length;
-    await cfg.update(`enableService.${service}`, enabled, hasWorkspace ? target : vscode.ConfigurationTarget.Global);
-    this.rerender();
   }
 
   private rerender(): void {
@@ -151,9 +137,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
 
     const flags = serviceFlags();
     const installed = SERVICE_IDS.filter((id) => hasService(id));
-    const serviceList = JSON.stringify(
-      installed.map((id) => ({ id, label: SERVICE_LABEL[id], enabled: flags[id] }))
-    );
+    const serviceList = JSON.stringify(installed.map((id) => ({ id, label: SERVICE_LABEL[id], enabled: flags[id] })));
 
     const shortcuts: { id: string; label: string }[] = [];
     if (cfg.get<boolean>('enableOpenLocalhost', true)) shortcuts.push({ id: 'launchWeb', label: 'Open localhost' });
@@ -206,6 +190,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
   }
   .header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
   .title { font-weight: 600; }
+  .header-actions { display: flex; gap: 4px; }
   .section { margin-bottom: 14px; }
   .section-title {
     font-size: 11px;
@@ -229,6 +214,16 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
   button.primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
   button.primary:hover { background: var(--vscode-button-hoverBackground); }
   button:disabled { opacity: 0.5; cursor: default; }
+  button.icon {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+    background: transparent;
+    color: var(--vscode-icon-foreground, var(--vscode-foreground));
+  }
+  button.icon:hover { background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1)); }
   .actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .actions button { flex: 1 1 auto; }
   .service {
@@ -249,21 +244,6 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
   .service .controls button { padding: 3px 6px; font-size: 11px; }
   .shortcuts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .shortcuts button { width: 100%; text-align: left; }
-  .toggles { display: flex; flex-direction: column; gap: 2px; }
-  .toggle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 12px;
-    cursor: pointer;
-  }
-  .toggle:hover { background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.05)); }
-  .toggle input { margin: 0; accent-color: var(--vscode-checkbox-background, #0e639c); cursor: pointer; }
-  .toggle:focus-within { outline: 1px solid var(--vscode-focusBorder); outline-offset: 1px; }
-  .toggle .toggle-name { flex: 1 1 auto; }
-  .toggle .toggle-hint { font-size: 11px; color: var(--vscode-descriptionForeground); }
   .notice {
     padding: 8px 10px;
     border-radius: 4px;
@@ -283,7 +263,10 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
 <body>
   <div class="header">
     <span class="title">Laragon Controller</span>
-    <button id="refresh" type="button" title="Refresh status">Refresh</button>
+    <span class="header-actions">
+      <button id="settings" type="button" class="icon" title="Open Laragon Controller settings" aria-label="Open settings">&#9881;</button>
+      <button id="refresh" type="button" class="icon" title="Refresh status" aria-label="Refresh status">&#8635;</button>
+    </span>
   </div>
 
   <div id="notfound" class="notice hidden" role="alert"></div>
@@ -295,11 +278,6 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     <div id="services"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">Dashboard settings</div>
-    <div id="toggles" class="toggles"></div>
-  </div>
-
   ${shortcutsSection}
 
 <script nonce="${nonce}">
@@ -307,39 +285,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
   const SERVICES = ${serviceList};
 
   const servicesEl = document.getElementById('services');
-  const togglesEl = document.getElementById('toggles');
   const notFoundEl = document.getElementById('notfound');
-
-  function renderToggles() {
-    togglesEl.textContent = '';
-    if (!SERVICES.length) {
-      const empty = document.createElement('div');
-      empty.className = 'toggle-hint';
-      empty.textContent = 'No services detected in the Laragon folder.';
-      togglesEl.appendChild(empty);
-      return;
-    }
-    SERVICES.forEach(function (service) {
-      const label = document.createElement('label');
-      label.className = 'toggle';
-
-      const input = document.createElement('input');
-      input.type = 'checkbox';
-      input.checked = service.enabled;
-      input.dataset.toggleService = service.id;
-
-      const name = document.createElement('span');
-      name.className = 'toggle-name';
-      name.textContent = service.label;
-
-      const hint = document.createElement('span');
-      hint.className = 'toggle-hint';
-      hint.textContent = service.enabled ? 'shown' : 'hidden';
-
-      label.append(input, name, hint);
-      togglesEl.appendChild(label);
-    });
-  }
 
   function renderServices() {
     servicesEl.textContent = '';
@@ -405,6 +351,10 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
       vscode.postMessage({ type: 'refresh' });
       return;
     }
+    if (button.id === 'settings') {
+      vscode.postMessage({ type: 'shortcut', name: 'openSettings' });
+      return;
+    }
     if (button.dataset.shortcut) {
       vscode.postMessage({ type: 'shortcut', name: button.dataset.shortcut });
       return;
@@ -415,24 +365,12 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     }
   });
 
-  document.addEventListener('change', function (event) {
-    const input = event.target;
-    if (input && input.dataset && input.dataset.toggleService) {
-      vscode.postMessage({
-        type: 'toggleService',
-        service: input.dataset.toggleService,
-        enabled: input.checked,
-      });
-    }
-  });
-
   window.addEventListener('message', function (event) {
     if (event.data && event.data.type === 'state') {
       applyState(event.data);
     }
   });
 
-  renderToggles();
   renderServices();
   vscode.postMessage({ type: 'ready' });
 </script>

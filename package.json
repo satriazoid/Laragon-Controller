@@ -2,7 +2,7 @@
   "name": "laragon-controller",
   "displayName": "Laragon Controller",
   "description": "Start, stop and monitor your Laragon stack (Apache, MySQL, PostgreSQL, Nginx) from the VS Code sidebar.",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "publisher": "satriazoid",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -51,6 +51,12 @@
         "title": "Refresh Status",
         "category": "Laragon",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "laragonController.openSettings",
+        "title": "Open Settings",
+        "category": "Laragon",
+        "icon": "$(settings-gear)"
       },
       {
         "command": "laragonController.startAll",
@@ -139,9 +145,14 @@
       ],
       "view/title": [
         {
+          "command": "laragonController.openSettings",
+          "when": "view == laragonController.dashboard",
+          "group": "navigation@1"
+        },
+        {
           "command": "laragonController.refresh",
           "when": "view == laragonController.dashboard",
-          "group": "navigation"
+          "group": "navigation@2"
         }
       ]
     },
