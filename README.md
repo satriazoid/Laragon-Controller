@@ -129,7 +129,7 @@ to build it from source.
      **Install from VSIX...**, then pick the file.
    - **Command line**:
      ```bat
-     code --install-extension laragon-controller-0.7.3.vsix
+     code --install-extension laragon-controller-0.7.4.vsix
      ```
 3. Reload VS Code when prompted. The **Laragon** icon appears in the Activity
    Bar. Done.
@@ -148,7 +148,7 @@ or package and install it as in Option A:
 
 ```bat
 pnpm dlx @vscode/vsce package --allow-missing-repository
-code --install-extension laragon-controller-0.7.3.vsix --force
+code --install-extension laragon-controller-0.7.4.vsix --force
 ```
 
 ### Installing with an AI coding agent
@@ -179,11 +179,10 @@ Open the **Laragon** panel in the Activity Bar:
 - **Start All / Stop All / Restart All** for the whole stack.
 - Per-service **Start / Stop / Restart** buttons; the dot shows the state
   (green = running, red = stopped, yellow = busy/unknown).
-- **Dashboard settings** section: a checkbox per installed service. Untick one
-  and its row disappears from the dashboard and is skipped by Start/Stop All;
-  tick it again and the row comes back. The checkbox writes straight to the
-  `laragonController.enableService.<name>` setting, so the Settings UI and the
-  dashboard always agree.
+- **Gear icon in the header** (also in the panel title bar) opens this
+  extension's Settings page, filtered to `Laragon Controller`. That page holds
+  the per-service `enableService.<name>` checkboxes described under
+  [Choosing your services](#choosing-your-services).
 - Shortcut buttons: **phpMyAdmin**, **HeidiSQL**, **Adminer**, **Open www**,
   **Open localhost**, **Terminal**. Each can be hidden in the settings.
 - All actions are also available as commands (`Laragon: ...`) in the Command
@@ -265,6 +264,10 @@ src/
 
 ## Changelog
 
+- **0.7.4**: The separate **Dashboard settings** checkbox list is gone. A gear
+  icon in the dashboard header (and in the panel title bar) opens the
+  extension's own Settings page, where each service has its
+  `enableService.<name>` checkbox. Fewer controls, one place for settings.
 - **0.7.3**: New **Dashboard settings** section in the sidebar with a checkbox
   per installed service, so services can be shown or hidden without opening
   Settings. The checkbox updates `laragonController.enableService.<name>`
