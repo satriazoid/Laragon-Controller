@@ -2,14 +2,15 @@ import * as vscode from 'vscode';
 import {
   ACTION_LABEL,
   Action,
-  SERVICE_IDS,
   SERVICE_LABEL,
   ServiceId,
   control,
   controlAll,
   getStatus,
+  hasService,
   isInstalled,
   laragonPath,
+  enabledServices,
 } from './laragon';
 
 type Busy = ServiceId | 'all' | null;
@@ -31,6 +32,12 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     view.onDidDispose(() => {
       this.stopPolling();
       this.view = undefined;
+    });
+
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('laragonController') && this.view) {
+        this.view.webview.html = this.render(this.view.webview);
+      }
     });
 
     this.startPolling();
@@ -114,7 +121,43 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
       `style-src ${webview.cspSource} 'unsafe-inline'`,
       `script-src 'nonce-${nonce}'`,
     ].join('; ');
-    const serviceList = JSON.stringify(SERVICE_IDS.map((id) => ({ id, label: SERVICE_LABEL[id] })));
+    const cfg = vscode.workspace.getConfiguration('laragonController');
+
+    const activeServices = enabledServices().filter((id) => hasService(id));
+    const serviceList = JSON.stringify(activeServices.map((id) => ({ id, label: SERVICE_LABEL[id] })));
+
+    const shortcuts: { id: string; label: string }[] = [];
+    if (cfg.get<boolean>('enableOpenLocalhost', true)) shortcuts.push({ id: 'launchWeb', label: 'Open localhost' });
+    if (cfg.get<boolean>('enablePhpMyAdmin', true)) shortcuts.push({ id: 'openDatabaseManager', label: 'phpMyAdmin' });
+    if (cfg.get<boolean>('enableHeidiSql', true)) shortcuts.push({ id: 'openHeidiSql', label: 'HeidiSQL' });
+    if (cfg.get<boolean>('enableAdminer', true)) shortcuts.push({ id: 'openAdminer', label: 'Adminer' });
+    if (cfg.get<boolean>('enableOpenWww', true)) shortcuts.push({ id: 'openRoot', label: 'Open www' });
+    if (cfg.get<boolean>('enableTerminal', true)) shortcuts.push({ id: 'openTerminal', label: 'Terminal' });
+    const shortcutList = JSON.stringify(shortcuts);
+
+    const shortcutsHtml = shortcuts
+      .map(
+        (s) =>
+          `<button type="button" data-shortcut="${s.id}">${s.label}</button>`
+      )
+      .join('');
+    const allEnabled = cfg.get<boolean>('enableStartAll', true);
+    const allSection = allEnabled
+      ? `<div class="section">
+    <div class="section-title">All services</div>
+    <div class="actions">
+      <button class="primary" type="button" data-action="start">Start All</button>
+      <button type="button" data-action="stop">Stop All</button>
+      <button type="button" data-action="restart">Restart All</button>
+    </div>
+  </div>`
+      : '';
+    const shortcutsSection = shortcuts.length
+      ? `<div class="section">
+    <div class="section-title">Shortcuts</div>
+    <div class="shortcuts">${shortcutsHtml}</div>
+  </div>`
+      : '';
 
     return `<!DOCTYPE html>
 <html lang="en">
@@ -201,29 +244,14 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
 
   <div id="notfound" class="notice hidden" role="alert"></div>
 
-  <div class="section">
-    <div class="section-title">All services</div>
-    <div class="actions">
-      <button class="primary" type="button" data-action="start">Start All</button>
-      <button type="button" data-action="stop">Stop All</button>
-      <button type="button" data-action="restart">Restart All</button>
-    </div>
-  </div>
+  ${allSection}
 
   <div class="section">
     <div class="section-title">Services</div>
     <div id="services"></div>
   </div>
 
-  <div class="section">
-    <div class="section-title">Shortcuts</div>
-    <div class="shortcuts">
-      <button type="button" data-shortcut="openRoot">Open www</button>
-      <button type="button" data-shortcut="launchWeb">Open localhost</button>
-      <button type="button" data-shortcut="openDatabaseManager">phpMyAdmin</button>
-      <button type="button" data-shortcut="openTerminal">Terminal</button>
-    </div>
-  </div>
+  ${shortcutsSection}
 
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();

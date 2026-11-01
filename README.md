@@ -1,14 +1,18 @@
 # Laragon Controller
 
-Control and monitor your Laragon stack (**Apache, MySQL, PostgreSQL and Nginx**)
-from the VS Code sidebar. No need to keep the Laragon GUI open or switch windows:
-the extension starts and stops the server binaries directly.
+Control and monitor your Laragon stack (**Apache, MySQL, PostgreSQL, Nginx,
+Redis and Memcached**) from the VS Code sidebar. No need to keep the Laragon
+GUI open or switch windows: the extension starts and stops the server binaries
+directly.
 
 ## Features
 
 - Activity Bar panel with live status (polled every 3 seconds) for every service
   found in your Laragon installation.
 - **Start All / Stop All / Restart All**, plus per-service start, stop and restart.
+- **Choose which services you own**: turn any service off in the settings and it
+  disappears from the dashboard and is skipped by Start/Stop All. Useful when
+  your Laragon install has Redis or Memcached but you never run them.
 - **PostgreSQL support**: detected automatically when present in Laragon; on first
   start it even initialises the database cluster for you (see below).
 - **Background by design**: services run with no console or terminal window to
@@ -19,7 +23,11 @@ the extension starts and stops the server binaries directly.
   - **Open www**: opens the `www` folder in your OS file explorer.
   - **Open localhost**: opens `http://localhost` in your browser.
   - **phpMyAdmin**: opens `http://localhost/phpmyadmin`.
+  - **HeidiSQL**: launches the HeidiSQL desktop client from
+    `bin/heidisql/heidisql.exe`.
+  - **Adminer**: opens `http://localhost/adminer`.
   - **Terminal**: opens a terminal at the current project root.
+  Every shortcut can be turned off in the settings.
 - Toast notifications when services start or stop, and real error messages when
   something fails (nothing fails silently).
 - Works without the Laragon GUI running.
@@ -27,9 +35,10 @@ the extension starts and stops the server binaries directly.
 ## Services
 
 Services are **auto-detected** by scanning the Laragon folder. A service only
-appears (and only gets controlled) when its binaries exist on the machine.
-If several version folders exist for the same service, the first matching
-folder is the one that gets controlled:
+appears (and only gets controlled) when its binaries exist on the machine and
+its `laragonController.services.<id>` setting is not `false`. If several
+version folders exist for the same service, the first matching folder is the
+one that gets controlled:
 
 | Service    | Detected at                                                     | Started via                                   | Default port |
 | ---------- | --------------------------------------------------------------- | --------------------------------------------- | ------------ |
@@ -37,9 +46,31 @@ folder is the one that gets controlled:
 | MySQL      | `bin/mysql/*/bin/mysqld.exe`                                    | `mysqld.exe --defaults-file=<version>/my.ini`, started hidden via PowerShell `Start-Process` (background, no terminal window) | 3306         |
 | PostgreSQL | `bin/postgresql/*/bin/pg_ctl.exe`, cluster in `<version>/data`  | `pg_ctl start` / `pg_ctl stop`                | 5432         |
 | Nginx      | `bin/nginx/*/nginx.exe`                                         | `nginx.exe`                                   | 81           |
+| Redis      | `bin/redis/*/redis-server.exe`                                  | `redis-server.exe <dir>/redis.windows.conf`   | 6379         |
+| Memcached  | `bin/memcached/*/memcached.exe`                                 | `memcached.exe`                               | 11211        |
 
 Apache listens on port 80 and Nginx on port 81, so both web servers can run at
 the same time.
+
+### Choosing your services
+
+Each service has a switch under `laragonController.services`:
+
+```json
+"laragonController.services": {
+  "apache": true,
+  "mysql": true,
+  "postgres": false,
+  "nginx": false,
+  "redis": false,
+  "memcached": false
+}
+```
+
+A service set to `false` is hidden from the dashboard and skipped by
+Start All / Stop All / Restart All. Set it back to `true` and it reappears
+(after a reload if the panel is already open). Services whose binaries are not
+installed never show up, regardless of the switch.
 
 ### MySQL notes
 
@@ -94,7 +125,7 @@ to build it from source.
      **Install from VSIX...**, then pick the file.
    - **Command line**:
      ```bat
-     code --install-extension laragon-controller-0.6.3.vsix
+     code --install-extension laragon-controller-0.7.1.vsix
      ```
 3. Reload VS Code when prompted. The **Laragon** icon appears in the Activity
    Bar. Done.
@@ -104,16 +135,16 @@ to build it from source.
 ```bat
 git clone <this-repo-url>
 cd laragon-controller
-npm install
-npm run compile
+pnpm install
+pnpm run compile
 ```
 
 Then either press `F5` in VS Code to run it in an Extension Development Host,
 or package and install it as in Option A:
 
 ```bat
-npx @vscode/vsce package --allow-missing-repository
-code --install-extension laragon-controller-0.6.3.vsix --force
+pnpm dlx @vscode/vsce package --allow-missing-repository
+code --install-extension laragon-controller-0.7.1.vsix --force
 ```
 
 ### Installing with an AI coding agent
@@ -144,8 +175,8 @@ Open the **Laragon** panel in the Activity Bar:
 - **Start All / Stop All / Restart All** for the whole stack.
 - Per-service **Start / Stop / Restart** buttons; the dot shows the state
   (green = running, red = stopped, yellow = busy/unknown).
-- Shortcut buttons: **Open www**, **Open localhost**, **phpMyAdmin**,
-  **Terminal**.
+- Shortcut buttons: **phpMyAdmin**, **HeidiSQL**, **Adminer**, **Open www**,
+  **Open localhost**, **Terminal**. Each can be hidden in the settings.
 - All actions are also available as commands (`Laragon: ...`) in the Command
   Palette.
 
@@ -157,18 +188,35 @@ Open the **Laragon** panel in the Activity Bar:
 | `laragonController.autoStartOnOpen`| `false`      | Start all services automatically when VS Code opens.                     |
 | `laragonController.pollingInterval`| `3000`       | Status check interval in milliseconds (minimum 1000).                    |
 | `laragonController.defaultBrowser` | `""`         | Browser executable used for `http://localhost`; empty = system default.  |
+| `laragonController.services`       | all `true`   | Switch each service on or off. Off = hidden and skipped by Start/Stop All. |
+| `laragonController.databaseManagerUrl` | `http://localhost/phpmyadmin` | URL opened by the phpMyAdmin shortcut. |
+| `laragonController.adminerUrl`     | `http://localhost/adminer` | URL opened by the Adminer shortcut.                        |
+| `laragonController.heidiSqlPath`   | `""`         | Path to `heidisql.exe`; empty = `<laragonPath>/bin/heidisql/heidisql.exe`. |
+| `laragonController.enableStartAll` | `true`       | Show the Start/Stop/Restart All controls.                                |
+| `laragonController.enableOpenWww`  | `true`       | Show the Open www shortcut.                                              |
+| `laragonController.enableOpenLocalhost` | `true`  | Show the Open localhost shortcut.                                        |
+| `laragonController.enablePhpMyAdmin` | `true`     | Show the phpMyAdmin shortcut.                                            |
+| `laragonController.enableHeidiSql` | `true`       | Show the HeidiSQL shortcut.                                              |
+| `laragonController.enableAdminer`  | `true`       | Show the Adminer shortcut.                                               |
+| `laragonController.enableTerminal` | `true`       | Show the Terminal shortcut.                                              |
 
 ## Troubleshooting
 
 - **"Laragon not found at ..."**: Laragon is not at the default path. Set
   `laragonController.laragonPath` to your installation folder.
-- **A service never shows up**: its binaries were not found; check the
-  detection paths in the [Services](#services) table. For PostgreSQL this
-  means it has not been added to Laragon yet.
-- **phpMyAdmin says "Forbidden"**: that comes from Apache, not this
-  extension: Laragon's `etc/apache2/alias/phpmyadmin.conf` must point at an
-  existing phpMyAdmin folder (e.g. `C:/laragon/www/phpmyadmin`) and Apache
-  must be restarted afterwards.
+- **A service is missing from the dashboard**: either its binaries were not
+  found (check the detection paths in the [Services](#services) table), or it
+  is switched off in `laragonController.services`. For PostgreSQL a missing
+  row means it has not been added to Laragon yet.
+- **phpMyAdmin or Adminer says "Forbidden"**: that comes from Apache, not this
+  extension: the alias file (`etc/apache2/alias/phpmyadmin.conf` or
+  `adminer.conf`) must point at a folder that actually exists (e.g.
+  `C:/laragon/www/phpmyadmin`, `C:/laragon/etc/apps/adminer`), and Apache must
+  be restarted afterwards. The shortcut URL can also be changed with
+  `laragonController.databaseManagerUrl` / `laragonController.adminerUrl`.
+- **HeidiSQL does not open**: no `heidisql.exe` was found at
+  `<laragonPath>/bin/heidisql/heidisql.exe`. Point `laragonController.heidiSqlPath`
+  at the executable.
 - **A service will not stop**: the extension first tries the graceful
   shutdown for each service and then force-kills the process as a fallback.
 - **Restart never finishes, or the buttons stay disabled**: that was a
@@ -181,11 +229,14 @@ Open the **Laragon** panel in the Activity Bar:
 ## Development
 
 ```bat
-npm install     # install dev dependencies (TypeScript)
-npm run compile # build to out/
-npm run watch   # rebuild on change
+pnpm install     # install dev dependencies (TypeScript), pnpm-lock.yaml is the only lockfile
+pnpm run compile # build to out/
+pnpm run watch   # rebuild on change
 node out/services.js   # sanity check: prints detected binaries + live status
 ```
+
+Do not run `npm install`: it creates a `package-lock.json` that is gitignored
+and a separate dependency tree from the pnpm store.
 
 Project layout:
 
@@ -199,6 +250,14 @@ src/
 
 ## Changelog
 
+- **0.7.1**: New services **Redis** and **Memcached** (auto-detected, start and
+  stop handled). New `laragonController.services` setting to switch each
+  service on or off per machine; a disabled service is hidden from the
+  dashboard and skipped by Start/Stop/Restart All. New shortcuts **HeidiSQL**
+  (desktop client) and **Adminer** (web), each with its own URL/path setting
+  and on/off switch. phpMyAdmin shortcut URL is now configurable
+  (`databaseManagerUrl`). Every dashboard shortcut has an
+  `enable...` switch. Build uses **pnpm**; `package-lock.json` is gone.
 - **0.6.3**: Restart (single and Restart All) no longer hangs: starting
   PostgreSQL through `pg_ctl` was awaited via a pipe the daemon inherits
   and keeps open forever, so the action never returned and the dashboard

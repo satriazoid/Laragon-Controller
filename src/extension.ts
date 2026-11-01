@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { execFile } from 'node:child_process';
 import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { DashboardProvider } from './dashboard';
 import { ACTION_LABEL, Action, controlAll, laragonPath, wwwPath } from './laragon';
 
@@ -51,7 +52,46 @@ function launchWeb(): void {
 }
 
 function openDatabaseManager(): void {
-  void openExternalUrl('http://localhost/phpmyadmin');
+  const url = vscode.workspace
+    .getConfiguration('laragonController')
+    .get<string>('databaseManagerUrl', 'http://localhost/phpmyadmin');
+  void openExternalUrl(url.trim() || 'http://localhost/phpmyadmin');
+}
+
+function openUrl(url: string, label: string): void {
+  if (!url.trim()) {
+    vscode.window.showErrorMessage(`Laragon: no URL configured for ${label}.`);
+    return;
+  }
+  void openExternalUrl(url.trim());
+}
+
+function openApp(exePath: string, label: string): void {
+  if (!exePath || !fs.existsSync(exePath)) {
+    vscode.window.showErrorMessage(`Laragon: ${label} not found at "${exePath}".`);
+    return;
+  }
+  execFile(exePath, [], { cwd: path.dirname(exePath), windowsHide: false }, (err) => {
+    if (err) {
+      vscode.window.showErrorMessage(`Laragon: failed to launch ${label}: ${err.message}`);
+    }
+  });
+}
+
+function openHeidiSql(): void {
+  const configured = vscode.workspace
+    .getConfiguration('laragonController')
+    .get<string>('heidiSqlPath', '')
+    .trim();
+  const exe = configured || path.join(laragonPath(), 'bin', 'heidisql', 'heidisql.exe');
+  openApp(exe, 'HeidiSQL');
+}
+
+function openAdminer(): void {
+  const url = vscode.workspace
+    .getConfiguration('laragonController')
+    .get<string>('adminerUrl', 'http://localhost/adminer');
+  openUrl(url, 'Adminer');
 }
 
 function openTerminal(): void {
@@ -71,6 +111,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('laragonController.openRoot', openRoot),
     vscode.commands.registerCommand('laragonController.launchWeb', launchWeb),
     vscode.commands.registerCommand('laragonController.openDatabaseManager', openDatabaseManager),
+    vscode.commands.registerCommand('laragonController.openHeidiSql', openHeidiSql),
+    vscode.commands.registerCommand('laragonController.openAdminer', openAdminer),
     vscode.commands.registerCommand('laragonController.openTerminal', openTerminal)
   );
 
