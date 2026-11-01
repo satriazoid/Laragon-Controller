@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import {
   ACTION_LABEL,
   Action,
+  SERVICE_IDS,
   SERVICE_LABEL,
   ServiceId,
   control,
@@ -10,7 +11,7 @@ import {
   hasService,
   isInstalled,
   laragonPath,
-  enabledServices,
+  serviceFlags,
 } from './laragon';
 
 type Busy = ServiceId | 'all' | null;
@@ -75,7 +76,12 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     });
   }
 
-  private async onMessage(message: { type?: string; action?: Action; service?: ServiceId; name?: string }): Promise<void> {
+  private async onMessage(message: {
+    type?: string;
+    action?: Action;
+    service?: ServiceId;
+    name?: string;
+  }): Promise<void> {
     switch (message.type) {
       case 'ready':
       case 'refresh':
@@ -89,6 +95,12 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
           await this.runAction(message.action, message.service);
         }
         return;
+    }
+  }
+
+  private rerender(): void {
+    if (this.view) {
+      this.view.webview.html = this.render(this.view.webview);
     }
   }
 
@@ -123,8 +135,9 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     ].join('; ');
     const cfg = vscode.workspace.getConfiguration('laragonController');
 
-    const activeServices = enabledServices().filter((id) => hasService(id));
-    const serviceList = JSON.stringify(activeServices.map((id) => ({ id, label: SERVICE_LABEL[id] })));
+    const flags = serviceFlags();
+    const installed = SERVICE_IDS.filter((id) => hasService(id));
+    const serviceList = JSON.stringify(installed.map((id) => ({ id, label: SERVICE_LABEL[id], enabled: flags[id] })));
 
     const shortcuts: { id: string; label: string }[] = [];
     if (cfg.get<boolean>('enableOpenLocalhost', true)) shortcuts.push({ id: 'launchWeb', label: 'Open localhost' });
@@ -177,6 +190,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
   }
   .header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
   .title { font-weight: 600; }
+  .header-actions { display: flex; gap: 4px; }
   .section { margin-bottom: 14px; }
   .section-title {
     font-size: 11px;
@@ -200,6 +214,16 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
   button.primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); }
   button.primary:hover { background: var(--vscode-button-hoverBackground); }
   button:disabled { opacity: 0.5; cursor: default; }
+  button.icon {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    font-size: 14px;
+    line-height: 1;
+    background: transparent;
+    color: var(--vscode-icon-foreground, var(--vscode-foreground));
+  }
+  button.icon:hover { background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1)); }
   .actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .actions button { flex: 1 1 auto; }
   .service {
@@ -239,7 +263,10 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
 <body>
   <div class="header">
     <span class="title">Laragon Controller</span>
-    <button id="refresh" type="button" title="Refresh status">Refresh</button>
+    <span class="header-actions">
+      <button id="settings" type="button" class="icon" title="Open Laragon Controller settings" aria-label="Open settings">&#9881;</button>
+      <button id="refresh" type="button" class="icon" title="Refresh status" aria-label="Refresh status">&#8635;</button>
+    </span>
   </div>
 
   <div id="notfound" class="notice hidden" role="alert"></div>
@@ -262,7 +289,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
 
   function renderServices() {
     servicesEl.textContent = '';
-    SERVICES.forEach(function (service) {
+    SERVICES.filter(function (s) { return s.enabled; }).forEach(function (service) {
       const row = document.createElement('div');
       row.className = 'service';
       row.dataset.service = service.id;
@@ -322,6 +349,10 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     }
     if (button.id === 'refresh') {
       vscode.postMessage({ type: 'refresh' });
+      return;
+    }
+    if (button.id === 'settings') {
+      vscode.postMessage({ type: 'shortcut', name: 'openSettings' });
       return;
     }
     if (button.dataset.shortcut) {

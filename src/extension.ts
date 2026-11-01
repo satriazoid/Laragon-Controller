@@ -100,11 +100,16 @@ function openTerminal(): void {
   vscode.window.createTerminal({ name: 'Laragon', cwd }).show();
 }
 
+async function openSettings(): Promise<void> {
+  await vscode.commands.executeCommand('workbench.action.openSettings', '@ext:satriazoid.laragon-controller');
+}
+
 export function activate(context: vscode.ExtensionContext): void {
   const provider = new DashboardProvider();
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(DashboardProvider.viewType, provider),
     vscode.commands.registerCommand('laragonController.refresh', () => provider.refreshNow()),
+    vscode.commands.registerCommand('laragonController.openSettings', openSettings),
     vscode.commands.registerCommand('laragonController.startAll', () => runAll('start')),
     vscode.commands.registerCommand('laragonController.stopAll', () => runAll('stop')),
     vscode.commands.registerCommand('laragonController.restartAll', () => runAll('restart')),

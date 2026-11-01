@@ -1,9 +1,20 @@
-# Laragon Controller
+![Laragon Controller](image/banner-lc.png)
+
+[English](#english) | [Bahasa Indonesia](#bahasa-indonesia)
+
+---
+
+<a id="english"></a>
+
+## English
 
 Control and monitor your Laragon stack (**Apache, MySQL, PostgreSQL, Nginx,
 Redis and Memcached**) from the VS Code sidebar. No need to keep the Laragon
 GUI open or switch windows: the extension starts and stops the server binaries
 directly.
+
+Jump to the [Bahasa Indonesia](#bahasa-indonesia) section for the Indonesian
+version of this document.
 
 ## Features
 
@@ -36,9 +47,9 @@ directly.
 
 Services are **auto-detected** by scanning the Laragon folder. A service only
 appears (and only gets controlled) when its binaries exist on the machine and
-its `laragonController.services.<id>` setting is not `false`. If several
-version folders exist for the same service, the first matching folder is the
-one that gets controlled:
+its `enableService.<name>` setting is not `false`. If several version folders
+exist for the same service, the first matching folder is the one that gets
+controlled:
 
 | Service    | Detected at                                                     | Started via                                   | Default port |
 | ---------- | --------------------------------------------------------------- | --------------------------------------------- | ------------ |
@@ -54,23 +65,27 @@ the same time.
 
 ### Choosing your services
 
-Each service has a switch under `laragonController.services`:
+Each service has its own switch in the Settings UI, under **Laragon
+Controller → Enable Service**:
 
-```json
-"laragonController.services": {
-  "apache": true,
-  "mysql": true,
-  "postgres": false,
-  "nginx": false,
-  "redis": false,
-  "memcached": false
-}
-```
+| Setting                                   | Default | Service    |
+| ----------------------------------------- | ------- | ---------- |
+| `laragonController.enableService.apache`    | `true`  | Apache     |
+| `laragonController.enableService.mysql`     | `true`  | MySQL      |
+| `laragonController.enableService.postgres`  | `true`  | PostgreSQL |
+| `laragonController.enableService.nginx`     | `true`  | Nginx      |
+| `laragonController.enableService.redis`     | `true`  | Redis      |
+| `laragonController.enableService.memcached` | `true`  | Memcached  |
 
-A service set to `false` is hidden from the dashboard and skipped by
-Start All / Stop All / Restart All. Set it back to `true` and it reappears
-(after a reload if the panel is already open). Services whose binaries are not
-installed never show up, regardless of the switch.
+Turn a service off and it disappears from the dashboard and is skipped by
+Start All / Stop All / Restart All. Turn it back on and it reappears right
+away. Services whose binaries are not installed never show up, even when
+their switch is on.
+
+An older combined form of the same switches still exists as
+`laragonController.services` (an object keyed by service name). It is only a
+fallback: once an individual `enableService.<name>` switch is set, that value
+wins. Prefer the individual switches.
 
 ### MySQL notes
 
@@ -125,7 +140,7 @@ to build it from source.
      **Install from VSIX...**, then pick the file.
    - **Command line**:
      ```bat
-     code --install-extension laragon-controller-0.7.1.vsix
+     code --install-extension laragon-controller-0.7.4.vsix
      ```
 3. Reload VS Code when prompted. The **Laragon** icon appears in the Activity
    Bar. Done.
@@ -144,7 +159,7 @@ or package and install it as in Option A:
 
 ```bat
 pnpm dlx @vscode/vsce package --allow-missing-repository
-code --install-extension laragon-controller-0.7.1.vsix --force
+code --install-extension laragon-controller-0.7.4.vsix --force
 ```
 
 ### Installing with an AI coding agent
@@ -175,6 +190,10 @@ Open the **Laragon** panel in the Activity Bar:
 - **Start All / Stop All / Restart All** for the whole stack.
 - Per-service **Start / Stop / Restart** buttons; the dot shows the state
   (green = running, red = stopped, yellow = busy/unknown).
+- **Gear icon in the header** (also in the panel title bar) opens this
+  extension's Settings page, filtered to `Laragon Controller`. That page holds
+  the per-service `enableService.<name>` checkboxes described under
+  [Choosing your services](#choosing-your-services).
 - Shortcut buttons: **phpMyAdmin**, **HeidiSQL**, **Adminer**, **Open www**,
   **Open localhost**, **Terminal**. Each can be hidden in the settings.
 - All actions are also available as commands (`Laragon: ...`) in the Command
@@ -188,7 +207,13 @@ Open the **Laragon** panel in the Activity Bar:
 | `laragonController.autoStartOnOpen`| `false`      | Start all services automatically when VS Code opens.                     |
 | `laragonController.pollingInterval`| `3000`       | Status check interval in milliseconds (minimum 1000).                    |
 | `laragonController.defaultBrowser` | `""`         | Browser executable used for `http://localhost`; empty = system default.  |
-| `laragonController.services`       | all `true`   | Switch each service on or off. Off = hidden and skipped by Start/Stop All. |
+| `laragonController.enableService.apache` | `true` | Show Apache on the dashboard and include it in Start/Stop All. |
+| `laragonController.enableService.mysql` | `true` | Same, for MySQL. |
+| `laragonController.enableService.postgres` | `true` | Same, for PostgreSQL. |
+| `laragonController.enableService.nginx` | `true` | Same, for Nginx. |
+| `laragonController.enableService.redis` | `true` | Same, for Redis. |
+| `laragonController.enableService.memcached` | `true` | Same, for Memcached. |
+| `laragonController.services`       | `{}` (unset) | Legacy object form; individual switches override it. |
 | `laragonController.databaseManagerUrl` | `http://localhost/phpmyadmin` | URL opened by the phpMyAdmin shortcut. |
 | `laragonController.adminerUrl`     | `http://localhost/adminer` | URL opened by the Adminer shortcut.                        |
 | `laragonController.heidiSqlPath`   | `""`         | Path to `heidisql.exe`; empty = `<laragonPath>/bin/heidisql/heidisql.exe`. |
@@ -250,6 +275,20 @@ src/
 
 ## Changelog
 
+- **0.7.4**: The separate **Dashboard settings** checkbox list is gone. A gear
+  icon in the dashboard header (and in the panel title bar) opens the
+  extension's own Settings page, where each service has its
+  `enableService.<name>` checkbox. Fewer controls, one place for settings.
+- **0.7.3**: New **Dashboard settings** section in the sidebar with a checkbox
+  per installed service, so services can be shown or hidden without opening
+  Settings. The checkbox updates `laragonController.enableService.<name>`
+  directly and the dashboard re-renders immediately.
+- **0.7.2**: Per-service on/off switches are now individual settings
+  (`laragonController.enableService.<name>`), so they show up as checkboxes in
+  the Settings UI instead of a hard-to-edit object. A service that is switched
+  off is hidden from the dashboard and skipped by Start/Stop/Restart All; the
+  dashboard updates as soon as the switch changes. The old combined
+  `laragonController.services` object still works as a fallback.
 - **0.7.1**: New services **Redis** and **Memcached** (auto-detected, start and
   stop handled). New `laragonController.services` setting to switch each
   service on or off per machine; a disabled service is hidden from the
@@ -282,3 +321,280 @@ src/
 ## License
 
 MIT. See the `LICENSE` file in this repository.
+
+---
+
+<a id="bahasa-indonesia"></a>
+
+## Bahasa Indonesia
+
+[English](#english) | [Bahasa Indonesia](#bahasa-indonesia)
+
+Kendalikan dan pantau stack Laragon (**Apache, MySQL, PostgreSQL, Nginx,
+Redis dan Memcached**) langsung dari sidebar VS Code. Laragon GUI tidak perlu
+dibuka dan tidak perlu berpindah jendela: ekstensi menjalankan dan
+menghentikan binary server secara langsung.
+
+## Fitur
+
+- Panel Activity Bar dengan status langsung (dicek setiap 3 detik) untuk setiap
+  service yang ditemukan di instalasi Laragon.
+- **Start All / Stop All / Restart All**, plus start, stop dan restart per
+  service.
+- **Pilih service mana yang kamu punya**: matikan service di pengaturan dan
+  service itu hilang dari dashboard serta dilewati Start/Stop All. Berguna
+  kalau Laragon kamu punya Redis atau Memcached tapi tidak pernah dipakai.
+- **Dukungan PostgreSQL**: terdeteksi otomatis bila ada di Laragon; pada start
+  pertama ekstensi bahkan menyiapkan cluster database untukmu (lihat di bawah).
+- **Berjalan di background**: service berjalan tanpa jendela konsol atau
+  terminal yang harus dibiarkan terbuka, dan tetap hidup saat VS Code atau
+  terminal ditutup. Tidak perlu hak administrator dan tidak ada yang dipasang
+  sebagai Windows service. Server berjalan sebagai user kamu sendiri.
+- Shortcut cepat:
+  - **Open www**: membuka folder `www` di file explorer OS.
+  - **Open localhost**: membuka `http://localhost` di browser.
+  - **phpMyAdmin**: membuka `http://localhost/phpmyadmin`.
+  - **HeidiSQL**: menjalankan aplikasi HeidiSQL dari
+    `bin/heidisql/heidisql.exe`.
+  - **Adminer**: membuka `http://localhost/adminer`.
+  - **Terminal**: membuka terminal di root project saat ini.
+  Setiap shortcut bisa dimatikan lewat pengaturan.
+- Notifikasi saat service menyala atau mati, dan pesan error yang jelas bila
+  ada yang gagal (tidak ada kegagalan yang senyap).
+- Berjalan tanpa membuka Laragon GUI.
+
+## Services
+
+Service **terdeteksi otomatis** dengan memindai folder Laragon. Sebuah service
+hanya muncul (dan hanya dikendalikan) bila binary-nya ada di mesin dan setting
+`enableService.<nama>`-nya tidak `false`. Bila ada beberapa folder versi untuk
+service yang sama, folder pertama yang cocok yang dikendalikan:
+
+| Service    | Terdeteksi di                                                   | Dijalankan via                                | Port default |
+| ---------- | --------------------------------------------------------------- | --------------------------------------------- | ------------ |
+| Apache     | `bin/apache/*/bin/httpd.exe`                                    | `httpd.exe`                                   | 80           |
+| MySQL      | `bin/mysql/*/bin/mysqld.exe`                                    | `mysqld.exe --defaults-file=<versi>/my.ini`, dijalankan tersembunyi lewat PowerShell `Start-Process` (background, tanpa jendela terminal) | 3306 |
+| PostgreSQL | `bin/postgresql/*/bin/pg_ctl.exe`, cluster di `<versi>/data`    | `pg_ctl start` / `pg_ctl stop`                | 5432         |
+| Nginx      | `bin/nginx/*/nginx.exe`                                         | `nginx.exe`                                   | 81           |
+| Redis      | `bin/redis/*/redis-server.exe`                                  | `redis-server.exe <dir>/redis.windows.conf`   | 6379         |
+| Memcached  | `bin/memcached/*/memcached.exe`                                 | `memcached.exe`                               | 11211        |
+
+Apache memakai port 80 dan Nginx port 81, jadi keduanya bisa jalan bersamaan.
+
+### Memilih service kamu
+
+Setiap service punya switch sendiri di Settings UI, di bawah **Laragon
+Controller → Enable Service**:
+
+| Setting                                     | Default | Service    |
+| ------------------------------------------- | ------- | ---------- |
+| `laragonController.enableService.apache`    | `true`  | Apache     |
+| `laragonController.enableService.mysql`     | `true`  | MySQL      |
+| `laragonController.enableService.postgres`  | `true`  | PostgreSQL |
+| `laragonController.enableService.nginx`     | `true`  | Nginx      |
+| `laragonController.enableService.redis`     | `true`  | Redis      |
+| `laragonController.enableService.memcached` | `true`  | Memcached  |
+
+Matikan sebuah service, service itu hilang dari dashboard dan dilewati Start
+All / Stop All / Restart All. Nyalakan lagi, service tersebut langsung muncul
+kembali. Service yang binary-nya tidak terpasang tidak akan muncul walaupun
+switch-nya menyala.
+
+Bentuk gabungan lama dari switch yang sama masih tersedia sebagai
+`laragonController.services` (objek dengan nama service sebagai key). Itu hanya
+cadangan: begitu switch `enableService.<nama>` diatur, nilainya yang dipakai.
+Sebaiknya pakai switch individual.
+
+### Catatan MySQL
+
+- MySQL dijalankan lewat PowerShell `Start-Process -WindowStyle Hidden`.
+  Menjalankan `mysqld` langsung (atau lewat WMI) masih memunculkan jendela
+  konsol, dan menutup jendela itu mematikan server. Peluncuran tersembunyi
+  membuatnya jadi proses background murni tanpa pemilik terminal: tidak ada
+  jendela untuk dibuka atau ditutup, dan tetap berjalan saat VS Code atau
+  terminal ditutup.
+- Stop tetap lewat `mysqladmin shutdown`, dengan fallback force-kill.
+- Shutdown rapi mengasumsikan setup MySQL bawaan Laragon (user `root`, tanpa
+  password). Bila kamu memasang password root, `mysqladmin` tidak bisa
+  autentikasi dan stop akan beralih ke force-kill `mysqld.exe`. Tetap mati,
+  hanya kurang rapi.
+
+### Catatan PostgreSQL
+
+- PostgreSQL **bukan bagian dari instalasi Laragon standar**. Bila file
+  `bin/postgresql/<versi>/bin/pg_ctl.exe` tidak ada, tambahkan PostgreSQL ke
+  Laragon dulu (*Quick Add* di Laragon, atau ekstrak distribusi resmi
+  PostgreSQL untuk Windows ke `bin/postgresql/<versi>/`). Ekstensi akan
+  mendeteksinya otomatis. Tidak perlu konfigurasi.
+- **Start pertama menyiapkan cluster**: bila `<versi>/data` belum punya
+  cluster, ekstensi menjalankan `initdb` dengan superuser `postgres` dan
+  **autentikasi trust untuk koneksi lokal**. Nyaman untuk development lokal
+  saja. Jangan buka server seperti itu ke jaringan.
+- PostgreSQL dikelola lewat `pg_ctl`, jadi database tetap berjalan terlepas
+  dari VS Code dan jendela konsol.
+
+## Kebutuhan
+
+- Windows 10/11 (ekstensi ini khusus Windows).
+- VS Code **1.80.0** atau lebih baru.
+- Laragon terpasang (default `C:\laragon`; bisa diubah, lihat Pengaturan).
+- Tidak perlu hak administrator, dan tidak ada yang perlu dipasang selain
+  ekstensi itu sendiri: Windows PowerShell, yang sudah ada di Windows,
+  dipakai untuk menjalankan MySQL secara tersembunyi.
+
+Itu saja. Node.js **tidak** dibutuhkan untuk *memakai* ekstensi yang sudah
+dipaketkan, hanya untuk membangunnya dari source.
+
+## Instalasi
+
+### Opsi A: instal `.vsix` yang sudah dipaketkan (langsung pakai)
+
+1. Dapatkan `laragon-controller-<versi>.vsix`. Saat ini dibagikan sebagai
+   file (belum ada di VS Code Marketplace); kamu juga bisa build sendiri,
+   lihat [Development](#development).
+2. Instal, pilih salah satu:
+   - **VS Code UI**: buka panel Extensions, menu `...`, pilih
+     **Install from VSIX...**, lalu pilih filenya.
+   - **Command line**:
+     ```bat
+     code --install-extension laragon-controller-0.7.4.vsix
+     ```
+3. Reload VS Code saat diminta. Ikon **Laragon** muncul di Activity Bar.
+   Selesai.
+
+### Opsi B: build dari source
+
+```bat
+git clone <this-repo-url>
+cd laragon-controller
+pnpm install
+pnpm run compile
+```
+
+Lalu tekan `F5` di VS Code untuk menjalankannya di Extension Development Host,
+atau paketkan dan instal seperti Opsi A:
+
+```bat
+pnpm dlx @vscode/vsce package --allow-missing-repository
+code --install-extension laragon-controller-0.7.4.vsix --force
+```
+
+### Instalasi dengan AI coding agent
+
+Repo ini menyertakan `AGENTS.md` berisi langkah setup yang tepat dan
+machine-readable. Berikan repo (atau URL-nya) ke AI coding agent kamu dan
+katakan:
+
+> Read `AGENTS.md` and `README.md` in this repo, then build and install the
+> Laragon Controller extension into my VS Code, and verify the installation.
+
+Agent bisa menyelesaikan seluruh alur tanpa pengawasan: memasang dependency,
+compile, memaketkan `.vsix`, menginstalnya dan memverifikasi file terpasang.
+
+### Membagikan ekstensi
+
+Kirim file `.vsix`. Mesin tujuan butuh setup sama (Windows 10/11, VS Code,
+Laragon); setelah itu semua yang ada di README ini berlaku apa adanya:
+service terdeteksi otomatis, tidak perlu hak administrator, dan satu-satunya
+setting yang biasanya perlu diubah adalah `laragonController.laragonPath` bila
+Laragon ada di luar `C:\laragon`. PostgreSQL tetap harus ada di Laragon
+tersebut dulu (lihat catatan PostgreSQL di atas).
+
+## Penggunaan
+
+Buka panel **Laragon** di Activity Bar:
+
+- **Start All / Stop All / Restart All** untuk seluruh stack.
+- Tombol **Start / Stop / Restart** per service; titik menunjukkan status
+  (hijau = jalan, merah = mati, kuning = sibuk/tidak diketahui).
+- **Ikon gear** di header (juga di title bar panel) membuka halaman Settings
+  ekstensi ini, sudah terfilter ke `Laragon Controller`. Di sana ada checkbox
+  `enableService.<nama>` per service yang dijelaskan pada
+  [Memilih service kamu](#memilih-service-kamu).
+- Tombol shortcut: **phpMyAdmin**, **HeidiSQL**, **Adminer**, **Open www**,
+  **Open localhost**, **Terminal**. Masing-masing bisa disembunyikan lewat
+  pengaturan.
+- Semua aksi juga tersedia sebagai command (`Laragon: ...`) di Command Palette.
+
+## Pengaturan
+
+| Setting                            | Default      | Deskripsi                                                              |
+| ---------------------------------- | ------------ | ---------------------------------------------------------------------- |
+| `laragonController.laragonPath`    | `C:/laragon` | Folder instalasi Laragon.                                              |
+| `laragonController.autoStartOnOpen`| `false`      | Jalankan semua service otomatis saat VS Code dibuka.                   |
+| `laragonController.pollingInterval`| `3000`       | Interval cek status dalam milidetik (minimum 1000).                    |
+| `laragonController.defaultBrowser` | `""`         | Browser yang dipakai untuk `http://localhost`; kosong = default sistem.|
+| `laragonController.enableService.apache` | `true` | Tampilkan Apache di dashboard dan ikut di Start/Stop All. |
+| `laragonController.enableService.mysql` | `true` | Sama, untuk MySQL. |
+| `laragonController.enableService.postgres` | `true` | Sama, untuk PostgreSQL. |
+| `laragonController.enableService.nginx` | `true` | Sama, untuk Nginx. |
+| `laragonController.enableService.redis` | `true` | Sama, untuk Redis. |
+| `laragonController.enableService.memcached` | `true` | Sama, untuk Memcached. |
+| `laragonController.services`       | `{}` (belum diatur) | Bentuk objek lama; switch individual menimpa ini. |
+| `laragonController.databaseManagerUrl` | `http://localhost/phpmyadmin` | URL yang dibuka shortcut phpMyAdmin. |
+| `laragonController.adminerUrl`     | `http://localhost/adminer` | URL yang dibuka shortcut Adminer.                          |
+| `laragonController.heidiSqlPath`   | `""`         | Path ke `heidisql.exe`; kosong = `<laragonPath>/bin/heidisql/heidisql.exe`. |
+| `laragonController.enableStartAll` | `true`       | Tampilkan tombol Start/Stop/Restart All.                               |
+| `laragonController.enableOpenWww`  | `true`       | Tampilkan shortcut Open www.                                           |
+| `laragonController.enableOpenLocalhost` | `true`  | Tampilkan shortcut Open localhost.                                     |
+| `laragonController.enablePhpMyAdmin` | `true`     | Tampilkan shortcut phpMyAdmin.                                         |
+| `laragonController.enableHeidiSql` | `true`       | Tampilkan shortcut HeidiSQL.                                           |
+| `laragonController.enableAdminer`  | `true`       | Tampilkan shortcut Adminer.                                            |
+| `laragonController.enableTerminal` | `true`       | Tampilkan shortcut Terminal.                                           |
+
+## Troubleshooting
+
+- **"Laragon not found at ..."**: Laragon tidak ada di path default. Atur
+  `laragonController.laragonPath` ke folder instalasimu.
+- **Service tidak muncul di dashboard**: binary-nya tidak ditemukan (cek path
+  deteksi di tabel [Services](#services)), atau switch-nya dimatikan di
+  `enableService.<nama>`. Untuk PostgreSQL, baris yang hilang berarti
+  PostgreSQL belum ditambahkan ke Laragon.
+- **phpMyAdmin atau Adminer menampilkan "Forbidden"**: itu dari Apache, bukan
+  dari ekstensi ini: file alias (`etc/apache2/alias/phpmyadmin.conf` atau
+  `adminer.conf`) harus menunjuk ke folder yang benar-benar ada (misalnya
+  `C:/laragon/www/phpmyadmin`, `C:/laragon/etc/apps/adminer`), lalu Apache
+  harus di-restart. URL shortcut juga bisa diubah lewat
+  `laragonController.databaseManagerUrl` / `laragonController.adminerUrl`.
+- **HeidiSQL tidak terbuka**: `heidisql.exe` tidak ditemukan di
+  `<laragonPath>/bin/heidisql/heidisql.exe`. Arahkan
+  `laragonController.heidiSqlPath` ke executable-nya.
+- **Service tidak mau berhenti**: ekstensi mencoba shutdown rapi dulu untuk
+  tiap service, lalu force-kill proses sebagai cadangan.
+- **Restart tidak pernah selesai, atau tombol tetap disabled**: itu bug pada
+  versi sebelum 0.6.3, di mana sebuah aksi bisa menggantung selamanya. Update
+  ke 0.6.3 atau lebih baru; versi terpasang terlihat di panel Extensions.
+- **Muncul jendela konsol berjudul path `mysqld.exe`**: juga sudah diperbaiki
+  di 0.6.2. Kalau masih muncul, kamu memakai versi lama.
+
+## Development
+
+```bat
+pnpm install     # pasang dependency dev (TypeScript), pnpm-lock.yaml satu-satunya lockfile
+pnpm run compile # build ke out/
+pnpm run watch   # build ulang saat ada perubahan
+node out/services.js   # cek cepat: menampilkan binary terdeteksi + status langsung
+```
+
+Jangan jalankan `npm install`: itu membuat `package-lock.json` yang sudah masuk
+gitignore dan dependency tree terpisah dari store pnpm.
+
+Struktur project:
+
+```
+src/
+  extension.ts  command dan aktivasi
+  dashboard.ts  webview sidebar (membuat satu baris per service otomatis)
+  laragon.ts    path dan facade kontrol
+  services.ts   deteksi service, start, stop, status (tanpa VS Code API)
+```
+
+## Changelog
+
+Lihat [Changelog di bagian English](#english). Isinya sama, hanya berbeda
+bahasa.
+
+## Lisensi
+
+MIT. Lihat file `LICENSE` di repo ini.
+
