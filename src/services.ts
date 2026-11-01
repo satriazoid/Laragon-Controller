@@ -5,18 +5,20 @@ import * as path from 'node:path';
 
 const execFileAsync = promisify(execFile);
 
-export type ServiceId = 'apache' | 'mysql' | 'postgres' | 'nginx';
+export type ServiceId = 'apache' | 'mysql' | 'postgres' | 'nginx' | 'redis' | 'memcached';
 export type ServiceState = 'running' | 'stopped' | 'unknown';
 export type Action = 'start' | 'stop' | 'restart';
 export type Status = Record<ServiceId, ServiceState>;
 
-export const SERVICE_IDS: ServiceId[] = ['apache', 'mysql', 'postgres', 'nginx'];
+export const SERVICE_IDS: ServiceId[] = ['apache', 'mysql', 'postgres', 'nginx', 'redis', 'memcached'];
 
 export const SERVICE_LABEL: Record<ServiceId, string> = {
   apache: 'Apache',
   mysql: 'MySQL',
   postgres: 'PostgreSQL',
   nginx: 'Nginx',
+  redis: 'Redis',
+  memcached: 'Memcached',
 };
 
 export const ACTION_LABEL: Record<Action, string> = {
@@ -30,6 +32,8 @@ const IMAGE: Record<ServiceId, string> = {
   mysql: 'mysqld.exe',
   postgres: 'postgres.exe',
   nginx: 'nginx.exe',
+  redis: 'redis-server.exe',
+  memcached: 'memcached.exe',
 };
 
 interface Launch {
@@ -103,6 +107,22 @@ export function launchFor(root: string, id: ServiceId): Launch | null {
     const dir = postgresHome(root);
     return dir ? { exe: path.join(dir, 'bin', 'pg_ctl.exe'), cwd: dir, args: [] } : null;
   }
+  if (id === 'redis') {
+    const dir = firstDirWith(path.join(root, 'bin', 'redis'), 'redis-server.exe');
+    if (!dir) {
+      return null;
+    }
+    const conf = path.join(dir, 'redis.windows.conf');
+    return {
+      exe: path.join(dir, 'redis-server.exe'),
+      cwd: dir,
+      args: fs.existsSync(conf) ? [conf] : [],
+    };
+  }
+  if (id === 'memcached') {
+    const dir = firstDirWith(path.join(root, 'bin', 'memcached'), 'memcached.exe');
+    return dir ? { exe: path.join(dir, 'memcached.exe'), cwd: dir, args: [] } : null;
+  }
   const dir = firstDirWith(path.join(root, 'bin', 'mysql'), path.join('bin', 'mysqld.exe'));
   if (!dir) {
     return null;
@@ -119,6 +139,21 @@ export function hasService(root: string, id: ServiceId): boolean {
   return launchFor(root, id) !== null;
 }
 
+export type ServiceFlags = Record<ServiceId, boolean>;
+
+export const SERVICE_DEFAULT_ENABLED: ServiceFlags = {
+  apache: true,
+  mysql: true,
+  postgres: true,
+  nginx: true,
+  redis: true,
+  memcached: true,
+};
+
+export function enabledServices(flags: Partial<ServiceFlags> | undefined): ServiceId[] {
+  return SERVICE_IDS.filter((id) => (flags ? flags[id] !== false : true));
+}
+
 async function tasklist(): Promise<string> {
   const { stdout } = await execFileAsync('tasklist', ['/NH', '/FO', 'CSV'], { windowsHide: true, timeout: 15_000 });
   return stdout.toLowerCase();
@@ -133,7 +168,10 @@ async function isRunning(id: ServiceId): Promise<boolean> {
 }
 
 export async function getStatus(root: string): Promise<Status> {
-  const result: Status = { apache: 'unknown', mysql: 'unknown', postgres: 'unknown', nginx: 'unknown' };
+  const result = {} as Status;
+  for (const id of SERVICE_IDS) {
+    result[id] = 'unknown';
+  }
   let output: string;
   try {
     output = await tasklist();
@@ -266,6 +304,11 @@ export async function stop(root: string, id: ServiceId): Promise<void> {
       const admin = path.join(path.dirname(launch.exe), 'mysqladmin.exe');
       if (fs.existsSync(admin)) {
         await run(admin, [...launch.args, '-u', 'root', 'shutdown'], launch.cwd);
+      }
+    } else if (id === 'redis') {
+      const cli = path.join(path.dirname(launch.exe), 'redis-cli.exe');
+      if (fs.existsSync(cli)) {
+        await run(cli, ['SHUTDOWN', 'NOSAVE'], launch.cwd);
       }
     } else if (id === 'postgres') {
       const home = postgresHome(root);

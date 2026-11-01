@@ -2,7 +2,7 @@
   "name": "laragon-controller",
   "displayName": "Laragon Controller",
   "description": "Start, stop and monitor your Laragon stack (Apache, MySQL, PostgreSQL, Nginx) from the VS Code sidebar.",
-  "version": "0.6.3",
+  "version": "0.7.1",
   "publisher": "satriazoid",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -56,42 +56,87 @@
         "command": "laragonController.startAll",
         "title": "Start All Services",
         "category": "Laragon",
-        "icon": "$(play)"
+        "icon": "$(play)",
+        "enablement": "config.laragonController.enableStartAll"
       },
       {
         "command": "laragonController.stopAll",
         "title": "Stop All Services",
         "category": "Laragon",
-        "icon": "$(debug-stop)"
+        "icon": "$(debug-stop)",
+        "enablement": "config.laragonController.enableStartAll"
       },
       {
         "command": "laragonController.restartAll",
         "title": "Restart All Services",
         "category": "Laragon",
-        "icon": "$(debug-restart)"
+        "icon": "$(debug-restart)",
+        "enablement": "config.laragonController.enableStartAll"
       },
       {
         "command": "laragonController.openRoot",
         "title": "Open www Folder",
-        "category": "Laragon"
+        "category": "Laragon",
+        "enablement": "config.laragonController.enableOpenWww"
       },
       {
         "command": "laragonController.launchWeb",
         "title": "Open localhost",
-        "category": "Laragon"
+        "category": "Laragon",
+        "enablement": "config.laragonController.enableOpenLocalhost"
       },
       {
         "command": "laragonController.openDatabaseManager",
-        "title": "Open Database Manager",
-        "category": "Laragon"
+        "title": "Open phpMyAdmin",
+        "category": "Laragon",
+        "enablement": "config.laragonController.enablePhpMyAdmin"
+      },
+      {
+        "command": "laragonController.openHeidiSql",
+        "title": "Open HeidiSQL",
+        "category": "Laragon",
+        "enablement": "config.laragonController.enableHeidiSql"
+      },
+      {
+        "command": "laragonController.openAdminer",
+        "title": "Open Adminer",
+        "category": "Laragon",
+        "enablement": "config.laragonController.enableAdminer"
       },
       {
         "command": "laragonController.openTerminal",
         "title": "Open Terminal at Project Root",
-        "category": "Laragon"
+        "category": "Laragon",
+        "enablement": "config.laragonController.enableTerminal"
       }
     ],
     "menus": {
+      "commandPalette": [
+        {
+          "command": "laragonController.openRoot",
+          "when": "config.laragonController.enableOpenWww"
+        },
+        {
+          "command": "laragonController.launchWeb",
+          "when": "config.laragonController.enableOpenLocalhost"
+        },
+        {
+          "command": "laragonController.openDatabaseManager",
+          "when": "config.laragonController.enablePhpMyAdmin"
+        },
+        {
+          "command": "laragonController.openHeidiSql",
+          "when": "config.laragonController.enableHeidiSql"
+        },
+        {
+          "command": "laragonController.openAdminer",
+          "when": "config.laragonController.enableAdminer"
+        },
+        {
+          "command": "laragonController.openTerminal",
+          "when": "config.laragonController.enableTerminal"
+        }
+      ],
       "view/title": [
         {
           "command": "laragonController.refresh",
@@ -123,12 +168,83 @@
           "type": "string",
           "default": "",
           "description": "Path to a browser executable used to open http://localhost. Leave empty to use the system default browser."
+        },
+        "laragonController.databaseManagerUrl": {
+          "type": "string",
+          "default": "http://localhost/phpmyadmin",
+          "description": "URL to open for phpMyAdmin. Change if you use a different alias or port."
+        },
+        "laragonController.adminerUrl": {
+          "type": "string",
+          "default": "http://localhost/adminer",
+          "description": "URL to open for Adminer. Change if you use a different alias or port."
+        },
+        "laragonController.heidiSqlPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to heidisql.exe. Leave empty to use <laragonPath>/bin/heidisql/heidisql.exe."
+        },
+        "laragonController.services": {
+          "type": "object",
+          "default": {
+            "apache": true,
+            "mysql": true,
+            "postgres": true,
+            "nginx": true,
+            "redis": true,
+            "memcached": true
+          },
+          "description": "Enable or disable each service. A disabled service is hidden from the dashboard and skipped by Start All / Stop All / Restart All. It is only shown when its binaries are found in the Laragon install.",
+          "additionalProperties": false,
+          "properties": {
+            "apache": { "type": "boolean", "description": "Apache" },
+            "mysql": { "type": "boolean", "description": "MySQL" },
+            "postgres": { "type": "boolean", "description": "PostgreSQL" },
+            "nginx": { "type": "boolean", "description": "Nginx" },
+            "redis": { "type": "boolean", "description": "Redis" },
+            "memcached": { "type": "boolean", "description": "Memcached" }
+          }
+        },
+        "laragonController.enableOpenWww": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the \"Open www\" shortcut in the dashboard and Command Palette."
+        },
+        "laragonController.enableOpenLocalhost": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the \"Open localhost\" shortcut in the dashboard and Command Palette."
+        },
+        "laragonController.enablePhpMyAdmin": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the \"phpMyAdmin\" shortcut in the dashboard and Command Palette."
+        },
+        "laragonController.enableHeidiSql": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the \"HeidiSQL\" shortcut in the dashboard and Command Palette."
+        },
+        "laragonController.enableAdminer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the \"Adminer\" shortcut in the dashboard and Command Palette."
+        },
+        "laragonController.enableTerminal": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the \"Terminal\" shortcut in the dashboard and Command Palette."
+        },
+        "laragonController.enableStartAll": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the \"All services\" Start/Stop/Restart All controls in the dashboard and Command Palette."
         }
       }
     }
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "pnpm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "check": "node out/services.js"

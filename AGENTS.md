@@ -3,15 +3,16 @@
 Instructions for an AI coding agent (or a developer) working with this
 repository on a Windows machine. Following these steps builds the VS Code
 extension and installs it into the user's VS Code. Everything runs locally;
-no account or network service is required except npm / the VS Code extension
+no account or network service is required except pnpm / the VS Code extension
 toolchain.
 
 ## What this project is
 
 A VS Code extension (TypeScript) that starts, stops and monitors the Laragon
-stack on Windows: Apache, MySQL, PostgreSQL and Nginx. It controls the server
-binaries inside a Laragon installation directly (default `C:\laragon`); the
-Laragon GUI is not used. Full user documentation: [README.md](README.md).
+stack on Windows: Apache, MySQL, PostgreSQL and Nginx, plus Redis and Memcached
+when present. It controls the server binaries inside a Laragon installation
+directly (default `C:\laragon`); the Laragon GUI is not used. Full user
+documentation: [README.md](README.md).
 
 ## Prerequisites — check first
 
@@ -19,13 +20,15 @@ Run these and stop with a clear report if any fails:
 
 ```bat
 node --version        :: any current LTS (build-time only)
-npm --version
+pnpm --version        :: pnpm 9+ (package manager; not npm)
 code --version        :: VS Code 1.80.0 or newer
 dir C:\laragon        :: Laragon install; path is configurable, see below
 ```
 
-- Node.js/npm are needed ONLY to build. End users of the `.vsix` need just
+- Node.js/pnpm are needed ONLY to build. End users of the `.vsix` need just
   VS Code + Laragon.
+- This project uses **pnpm** (`pnpm-lock.yaml` is the only lockfile). Never
+  run `npm install` or commit `package-lock.json`; it is gitignored.
 - If Laragon lives somewhere else, that is fine — the extension has a
   `laragonController.laragonPath` setting. Do not hardcode another path.
 
@@ -33,10 +36,10 @@ dir C:\laragon        :: Laragon install; path is configurable, see below
 
 ```bat
 cd laragon-controller
-npm install
-npm run compile
-npx @vscode/vsce package --allow-missing-repository
-code --install-extension laragon-controller-0.6.0.vsix --force
+pnpm install
+pnpm run compile
+pnpm dlx @vscode/vsce package --allow-missing-repository
+code --install-extension laragon-controller-0.7.1.vsix --force
 ```
 
 (Replace the version in the file name with the `version` from `package.json`.)
@@ -101,5 +104,5 @@ Service specifics worth knowing:
 - Bump `version` in `package.json` for every user-visible change
   (patch = fixes, minor = new service/feature) and add a `CHANGELOG` entry in
   `README.md`.
-- After changing TypeScript, `npm run compile` must pass with no errors
+- After changing TypeScript, `pnpm run compile` must pass with no errors
   before packaging.
