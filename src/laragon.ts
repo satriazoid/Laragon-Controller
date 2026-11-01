@@ -11,6 +11,17 @@ export const SERVICE_IDS = services.SERVICE_IDS;
 export const SERVICE_LABEL = services.SERVICE_LABEL;
 export const ACTION_LABEL = services.ACTION_LABEL;
 
+export function serviceFlags(): services.ServiceFlags {
+  const raw = vscode.workspace
+    .getConfiguration('laragonController')
+    .get<Partial<services.ServiceFlags>>('services', {});
+  return { ...services.SERVICE_DEFAULT_ENABLED, ...raw };
+}
+
+export function enabledServices(): ServiceId[] {
+  return services.enabledServices(serviceFlags());
+}
+
 export function laragonPath(): string {
   return vscode.workspace.getConfiguration('laragonController').get<string>('laragonPath', 'C:/laragon');
 }
@@ -25,6 +36,10 @@ export function wwwPath(): string {
 
 export function isInstalled(): boolean {
   return fs.existsSync(laragonPath());
+}
+
+export function hasService(id: ServiceId): boolean {
+  return services.hasService(laragonPath(), id);
 }
 
 export function getStatus(): Promise<Status> {
@@ -49,7 +64,8 @@ export async function controlAll(action: Action): Promise<void> {
     await controlAll('start');
     return;
   }
-  const ids = action === 'stop' ? [...SERVICE_IDS].reverse() : SERVICE_IDS;
+  const active = enabledServices();
+  const ids = action === 'stop' ? [...active].reverse() : active;
   for (const id of ids) {
     if (services.hasService(root, id)) {
       await control(action, id);
