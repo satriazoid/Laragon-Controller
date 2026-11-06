@@ -3,7 +3,8 @@ import { execFile } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { DashboardProvider } from './dashboard';
-import { ACTION_LABEL, Action, controlAll, laragonPath, wwwPath } from './laragon';
+import { ACTION_LABEL, Action, control, controlAll, getStatus, hasService, laragonPath, SERVICE_LABEL, wwwPath } from './laragon';
+import type { ServiceId } from './laragon';
 
 async function runAll(action: Action): Promise<void> {
   try {
@@ -37,33 +38,84 @@ async function openExternalUrl(url: string): Promise<void> {
   }
 }
 
+// Start the services a shortcut depends on, wait until they report running,
+// then open the URL. Without this the button opens a page that is not being
+// served yet and the user only sees a connection error or a 403.
+async function ensureServices(ids: ServiceId[]): Promise<boolean> {
+  const required = ids.filter((id) => hasService(id));
+  if (!required.length) {
+    return true;
+  }
+  let status = await getStatus();
+  const down = required.filter((id) => status[id] !== 'running');
+  if (!down.length) {
+    return true;
+  }
+
+  const names = down.map((id) => SERVICE_LABEL[id]).join(', ');
+  return vscode.window.withProgress(
+    { location: vscode.ProgressLocation.Notification, title: `Laragon: starting ${names}...` },
+    async () => {
+      for (const id of down) {
+        try {
+          await control('start', id);
+        } catch (err) {
+          vscode.window.showErrorMessage(`Laragon: could not start ${SERVICE_LABEL[id]}: ${(err as Error).message}`);
+          return false;
+        }
+      }
+      // start() returns before the server is accepting connections; poll for a
+      // short window so the browser does not race the server startup.
+      for (let attempt = 0; attempt < 20; attempt++) {
+        status = await getStatus();
+        if (required.every((id) => status[id] === 'running')) {
+          return true;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+      vscode.window.showErrorMessage(`Laragon: ${names} did not come up in time. Check the service log.`);
+      return false;
+    }
+  );
+}
+
+async function openWebWithServices(url: string, ids: ServiceId[]): Promise<void> {
+  const ready = await ensureServices(ids);
+  if (!ready) {
+    return;
+  }
+  await openExternalUrl(url);
+}
+
 function launchWeb(): void {
   const url = 'http://localhost';
   const browser = vscode.workspace.getConfiguration('laragonController').get<string>('defaultBrowser', '').trim();
-  if (!browser) {
-    void openExternalUrl(url);
-    return;
-  }
-  execFile(browser, [url], { windowsHide: true }, (err) => {
-    if (err) {
-      vscode.window.showErrorMessage(`Laragon: failed to launch "${browser}": ${err.message}`);
+  void vscode.window.withProgress(
+    { location: vscode.ProgressLocation.Notification, title: 'Laragon: opening http://localhost...' },
+    async () => {
+      if (!(await ensureServices(['apache']))) {
+        return;
+      }
+      if (!browser) {
+        await openExternalUrl(url);
+        return;
+      }
+      execFile(browser, [url], { windowsHide: true }, (err) => {
+        if (err) {
+          vscode.window.showErrorMessage(`Laragon: failed to launch "${browser}": ${err.message}`);
+        }
+      });
     }
-  });
+  );
 }
 
 function openDatabaseManager(): void {
   const url = vscode.workspace
     .getConfiguration('laragonController')
-    .get<string>('databaseManagerUrl', 'http://localhost/phpmyadmin');
-  void openExternalUrl(url.trim() || 'http://localhost/phpmyadmin');
-}
-
-function openUrl(url: string, label: string): void {
-  if (!url.trim()) {
-    vscode.window.showErrorMessage(`Laragon: no URL configured for ${label}.`);
-    return;
-  }
-  void openExternalUrl(url.trim());
+    .get<string>('databaseManagerUrl', 'http://localhost/phpmyadmin')
+    .trim() || 'http://localhost/phpmyadmin';
+  // phpMyAdmin needs the web server for the page and a database for login.
+  void openWebWithServices(url, ['apache', 'mysql']);
 }
 
 function openApp(exePath: string, label: string): void {
@@ -90,8 +142,9 @@ function openHeidiSql(): void {
 function openAdminer(): void {
   const url = vscode.workspace
     .getConfiguration('laragonController')
-    .get<string>('adminerUrl', 'http://localhost/adminer');
-  openUrl(url, 'Adminer');
+    .get<string>('adminerUrl', 'http://localhost/adminer')
+    .trim() || 'http://localhost/adminer';
+  void openWebWithServices(url, ['apache']);
 }
 
 function openTerminal(): void {
