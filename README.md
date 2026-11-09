@@ -275,6 +275,10 @@ src/
 
 ## Changelog
 
+- **0.7.5**: Web shortcuts (Open www, Open localhost, phpMyAdmin, Adminer) now
+  automatically start required services (Apache, MySQL) before opening the URL,
+  with a VS Code progress notification and timeout. See [Auto‑start for web
+  shortcuts](#auto-start-for-web-shortcuts) for details.
 - **0.7.4**: The separate **Dashboard settings** checkbox list is gone. A gear
   icon in the dashboard header (and in the panel title bar) opens the
   extension's own Settings page, where each service has its
