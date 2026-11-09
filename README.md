@@ -196,8 +196,34 @@ Open the **Laragon** panel in the Activity Bar:
   [Choosing your services](#choosing-your-services).
 - Shortcut buttons: **phpMyAdmin**, **HeidiSQL**, **Adminer**, **Open www**,
   **Open localhost**, **Terminal**. Each can be hidden in the settings.
+  - **Auto‑start**: When you click a web shortcut (phpMyAdmin, Adminer, Open
+    localhost), the extension will first start any required services
+    (Apache, MySQL) automatically, then open the URL in your browser.
 - All actions are also available as commands (`Laragon: ...`) in the Command
   Palette.
+
+<a id="auto-start-web-shortcuts"></a>
+
+## Auto‑start untuk web shortcuts
+
+Klik shortcut web (phpMyAdmin, Adminer, Open localhost) akan memicu proses
+memulai service yang dibutuhkan (Apache, MySQL) secara otomatis sebelum URL
+buka di browser. Proses ini menunjukkan progress notification di sudut kanan
+bawah VS Code:
+
+1. Extension memeriksa status service via `getStatus()`.
+2. Jika service mati → menampilkan progress "Laragon: starting Apache & MySQL...".
+3. Menjalankan `control('start', id)` untuk service yang diperlukan.
+4. Polling setiap 500ms selama 10 detik hingga service *running*.
+5. Jika berhasil → membuka URL di browser.
+6. Jika gagal → menampilkan error message seperti *"Laragon: Apache did not come up in time"*.
+
+Fungsi ini berliri untuk **phpMyAdmin**, **Adminer**, dan **Open localhost**.
+Shortcut lainnya (HeidiSQL, Adminer terminal, Terminal) tetap membuka langsung
+tanpa memulai service karena tidak memerlukan web server.
+
+Jika service tidak dapat dimulai (bila binary-nya tidak terpasang di path
+Laragon), pengguna akan diberitahu melalui notifikasi error VS Code.
 
 ## Settings
 
@@ -275,6 +301,10 @@ src/
 
 ## Changelog
 
+- **0.7.5**: Web shortcuts (Open www, Open localhost, phpMyAdmin, Adminer) now
+  automatically start required services (Apache, MySQL) before opening the URL,
+  with a VS Code progress notification and timeout. See [Auto‑start untuk web
+  shortcuts](#auto-start-web-shortcuts) for details.
 - **0.7.4**: The separate **Dashboard settings** checkbox list is gone. A gear
   icon in the dashboard header (and in the panel title bar) opens the
   extension's own Settings page, where each service has its
